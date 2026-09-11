@@ -47,14 +47,14 @@ La aplicación queda disponible en `http://localhost:5173`.
 
 ## Endpoints implementados en este avance
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/api/auth/login` | Autenticación y emisión de JWT |
-| GET | `/api/medicos?especialidad=` | Listado de médicos filtrado |
-| GET | `/api/horarios/disponibles?medicoId=&fecha=` | Disponibilidad en tiempo real |
-| POST | `/api/citas` | Crear una cita (requiere token) |
-| GET | `/api/citas` | Listar mis citas (requiere token) |
-| PUT | `/api/citas/:id/cancelar` | Cancelar una cita (requiere token) |
+| Método | Ruta                                         | Descripción                        |
+| ------ | -------------------------------------------- | ---------------------------------- |
+| POST   | `/api/auth/login`                            | Autenticación y emisión de JWT     |
+| GET    | `/api/medicos?especialidad=`                 | Listado de médicos filtrado        |
+| GET    | `/api/horarios/disponibles?medicoId=&fecha=` | Disponibilidad en tiempo real      |
+| POST   | `/api/citas`                                 | Crear una cita (requiere token)    |
+| GET    | `/api/citas`                                 | Listar mis citas (requiere token)  |
+| PUT    | `/api/citas/:id/cancelar`                    | Cancelar una cita (requiere token) |
 
 ## Qué falta (próximos avances — Fase 2 completa)
 
