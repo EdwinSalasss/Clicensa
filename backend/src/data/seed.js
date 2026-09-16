@@ -39,3 +39,13 @@ export function crearCita({ pacienteId, medicoId, fecha, hora }) {
   citas.push(nueva);
   return nueva;
 }
+
+export function nombrePaciente(pacienteId) {
+  const u = usuarios.find((u) => u.id === pacienteId);
+  return u ? u.nombre : "Paciente desconocido";
+}
+
+export function nombreMedico(medicoId) {
+  const m = medicos.find((m) => m.id === medicoId);
+  return m ? m.nombre : "Medico desconocido";
+}

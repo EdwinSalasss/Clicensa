@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import NavBar from "../components/NavBar.jsx";
 import { api } from "../api/client.js";
 
 export default function AgendarCita() {
@@ -39,55 +40,56 @@ export default function AgendarCita() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 480 }}>
-      <h2>Agendar Cita Medica</h2>
+    <div>
+      <NavBar />
+      <div className="panel">
+        <div className="container wide" style={{ margin: "32px auto" }}>
+          <h2>Agendar Cita Medica</h2>
 
-      <label>1. Especialidad</label>
-      <select value={especialidad} onChange={(e) => setEspecialidad(e.target.value)}>
-        <option>Medicina General</option>
-        <option>Pediatria</option>
-        <option>Ginecologia</option>
-      </select>
+          <label>1. Especialidad</label>
+          <select value={especialidad} onChange={(e) => setEspecialidad(e.target.value)}>
+            <option>Medicina General</option>
+            <option>Pediatria</option>
+            <option>Ginecologia</option>
+          </select>
 
-      <label>2. Medico</label>
-      <select value={medicoId} onChange={(e) => setMedicoId(e.target.value)}>
-        <option value="">Seleccione...</option>
-        {medicos.map((m) => (
-          <option key={m.id} value={m.id}>{m.nombre}</option>
-        ))}
-      </select>
-
-      <label>3. Fecha</label>
-      <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-
-      {medicoId && (
-        <>
-          <label>4. Horario disponible</label>
-          <div className="slots">
-            {slots.length === 0 && <span style={{ fontSize: 13 }}>Sin horarios disponibles</span>}
-            {slots.map((h) => (
-              <div
-                key={h}
-                className={`slot ${horaSeleccionada === h ? "selected" : ""}`}
-                onClick={() => setHoraSeleccionada(h)}
-              >
-                {h}
-              </div>
+          <label>2. Medico</label>
+          <select value={medicoId} onChange={(e) => setMedicoId(e.target.value)}>
+            <option value="">Seleccione...</option>
+            {medicos.map((m) => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
             ))}
-          </div>
-        </>
-      )}
+          </select>
 
-      <button
-        className="secondary"
-        disabled={!horaSeleccionada}
-        onClick={confirmar}
-      >
-        CONFIRMAR CITA
-      </button>
+          <label>3. Fecha</label>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
 
-      {mensaje && <p className="success">{mensaje}</p>}
-      {error && <p className="error">{error}</p>}
+          {medicoId && (
+            <>
+              <label>4. Horario disponible</label>
+              <div className="slots">
+                {slots.length === 0 && <span style={{ fontSize: 13 }}>Sin horarios disponibles</span>}
+                {slots.map((h) => (
+                  <div
+                    key={h}
+                    className={`slot ${horaSeleccionada === h ? "selected" : ""}`}
+                    onClick={() => setHoraSeleccionada(h)}
+                  >
+                    {h}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button className="secondary block" disabled={!horaSeleccionada} onClick={confirmar}>
+            CONFIRMAR CITA
+          </button>
+
+          {mensaje && <p className="success">{mensaje}</p>}
+          {error && <p className="error">{error}</p>}
+        </div>
+      </div>
     </div>
   );
 }

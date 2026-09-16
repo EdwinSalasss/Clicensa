@@ -9,9 +9,7 @@ router.get("/disponibles", (req, res) => {
   const { fecha } = req.query;
 
   if (!medicoId || !fecha) {
-    return res
-      .status(400)
-      .json({ error: "medicoId y fecha son requeridos" });
+    return res.status(400).json({ error: "medicoId y fecha son requeridos" });
   }
 
   const base = horariosBase[medicoId] || [];

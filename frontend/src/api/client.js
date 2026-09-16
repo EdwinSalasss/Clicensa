@@ -22,11 +22,22 @@ async function request(path, options = {}) {
 export const api = {
   login: (correo, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ correo, password }) }),
+
   medicos: (especialidad) =>
     request(`/medicos${especialidad ? `?especialidad=${encodeURIComponent(especialidad)}` : ""}`),
+
   horariosDisponibles: (medicoId, fecha) =>
     request(`/horarios/disponibles?medicoId=${medicoId}&fecha=${fecha}`),
+
+  // Paciente
   crearCita: (medicoId, fecha, hora) =>
     request("/citas", { method: "POST", body: JSON.stringify({ medicoId, fecha, hora }) }),
   misCitas: () => request("/citas"),
+  cancelarCita: (id) => request(`/citas/${id}/cancelar`, { method: "PUT" }),
+
+  // Medico
+  agendaMedico: (fecha) => request(`/citas/medico?fecha=${fecha}`),
+
+  // Administrativo
+  citasTodas: (fecha) => request(`/citas/todas${fecha ? `?fecha=${fecha}` : ""}`),
 };
