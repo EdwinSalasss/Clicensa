@@ -13,14 +13,13 @@ const PORT = process.env.PORT || 4000;
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
-// Log simple de peticiones (util para la defensa/demo)
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
   next();
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", servicio: "CLISENSA API", version: "0.1.0" });
+  res.json({ status: "ok", servicio: "CLISENSA API", version: "0.2.0" });
 });
 
 app.use("/api/auth", authRoutes);

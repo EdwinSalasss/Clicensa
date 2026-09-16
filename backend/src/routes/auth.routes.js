@@ -16,7 +16,12 @@ router.post("/login", (req, res) => {
   const token = firmarToken(usuario);
   res.json({
     token,
-    usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol },
+    usuario: {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      rol: usuario.rol,
+      medicoId: usuario.medicoId || null,
+    },
   });
 });
 
