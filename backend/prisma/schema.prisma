@@ -1,0 +1,81 @@
+// CLISENSA — Esquema de base de datos (Fase 2)
+// Sustituye los arreglos en memoria de src/data/seed.js por PostgreSQL.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Rol {
+  paciente
+  medico
+  administrativo
+}
+
+enum EstadoCita {
+  confirmada
+  cancelada
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  correo    String   @unique
+  password  String // hash bcrypt, nunca texto plano
+  rol       Rol
+
+  // Si el usuario es un medico, se enlaza a su ficha de Medico
+  medico    Medico?  @relation(fields: [medicoId], references: [id])
+  medicoId  Int?     @unique
+
+  citas     Cita[]
+  creadoEn  DateTime @default(now())
+
+  @@map("usuarios")
+}
+
+model Medico {
+  id           Int           @id @default(autoincrement())
+  nombre       String
+  especialidad String
+
+  usuario      Usuario?
+  horarios     HorarioBase[]
+  citas        Cita[]
+
+  @@map("medicos")
+}
+
+// Horario base de atencion de cada medico (independiente de la fecha)
+model HorarioBase {
+  id       Int    @id @default(autoincrement())
+  medico   Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+  medicoId Int
+  hora     String // formato "HH:mm"
+
+  @@unique([medicoId, hora])
+  @@map("horarios_base")
+}
+
+model Cita {
+  id         Int        @id @default(autoincrement())
+  paciente   Usuario    @relation(fields: [pacienteId], references: [id])
+  pacienteId Int
+  medico     Medico     @relation(fields: [medicoId], references: [id])
+  medicoId   Int
+  fecha      String // formato "YYYY-MM-DD" (se mantiene como string para no alterar el contrato del frontend)
+  hora       String // formato "HH:mm"
+  estado     EstadoCita @default(confirmada)
+  creadaEn   DateTime   @default(now())
+
+  // Nota: no se usa @@unique([medicoId, fecha, hora]) a nivel de BD porque
+  // una cita cancelada SI debe liberar el horario (igual que en el codigo original).
+  // La validacion de "horario ya ocupado" se hace en la ruta, filtrando estado != cancelada.
+  @@index([medicoId, fecha])
+  @@index([pacienteId])
+  @@map("citas")
+}

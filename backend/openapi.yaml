@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: CLISENSA API
+  description: API REST del Sistema de Gestión de Citas Médicas (CLISENSA)
+  version: 0.3.0
+servers:
+  - url: http://localhost:4000/api
+    description: Desarrollo local
+tags:
+  - name: Auth
+  - name: Medicos
+  - name: Horarios
+  - name: Citas
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Autenticar usuario y obtener token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, password]
+              properties:
+                correo: { type: string, example: paciente@demo.com }
+                password: { type: string, example: "1234" }
+      responses:
+        "200":
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  usuario:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      nombre: { type: string }
+                      rol: { type: string, enum: [paciente, medico, administrativo] }
+                      medicoId: { type: integer, nullable: true }
+        "401":
+          description: Credenciales inválidas
+
+  /medicos:
+    get:
+      tags: [Medicos]
+      summary: Listar médicos (opcionalmente filtrados por especialidad)
+      parameters:
+        - in: query
+          name: especialidad
+          schema: { type: string }
+      responses:
+        "200":
+          description: Lista de médicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    nombre: { type: string }
+                    especialidad: { type: string }
+
+  /horarios/disponibles:
+    get:
+      tags: [Horarios]
+      summary: Horarios disponibles de un médico en una fecha
+      parameters:
+        - in: query
+          name: medicoId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: fecha
+          required: true
+          schema: { type: string, format: date, example: "2026-09-16" }
+      responses:
+        "200":
+          description: Horarios disponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  medicoId: { type: integer }
+                  fecha: { type: string }
+                  disponibles:
+                    type: array
+                    items: { type: string, example: "09:00" }
+
+  /citas:
+    post:
+      tags: [Citas]
+      summary: Agendar una cita (rol paciente)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [medicoId, fecha, hora]
+              properties:
+                medicoId: { type: integer }
+                fecha: { type: string, format: date }
+                hora: { type: string, example: "09:00" }
+      responses:
+        "201": { description: Cita creada }
+        "400": { description: Datos inválidos u horario inexistente }
+        "409": { description: Horario ya reservado }
+    get:
+      tags: [Citas]
+      summary: Listar las citas del paciente autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Lista de citas del paciente }
+
+  /citas/{id}/cancelar:
+    put:
+      tags: [Citas]
+      summary: Cancelar una cita propia (rol paciente)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Cita cancelada }
+        "403": { description: No autorizado }
+        "404": { description: Cita no encontrada }
+
+  /citas/medico:
+    get:
+      tags: [Citas]
+      summary: Agenda del día del médico autenticado (rol medico)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: fecha
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Agenda del día }
+
+  /citas/todas:
+    get:
+      tags: [Citas]
+      summary: Vista global de citas (rol administrativo)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: fecha
+          required: false
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Todas las citas del centro médico }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

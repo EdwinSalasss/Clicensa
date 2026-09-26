@@ -1,93 +1,157 @@
-# CLISENSA — Sistema de Gestión de Citas Médicas
+# CLISENSA
 
-Avance funcional (Fase 2) del proyecto CLISENSA — Grupo 5S3-SIS-S,
-asignatura Diseño de Sistemas en Internet.
+Sistema de gestión de citas médicas con React, Express, Prisma y PostgreSQL.
 
-## Novedades de este avance
+## Requisitos
 
-Respecto al avance anterior (que solo tenía la pantalla de agendar cita),
-ahora cada rol tiene su propia pantalla, tal como se definió en el Mapa de
-Navegación de la Fase 1 (Figura 4):
+- Git
+- Node.js 20 o superior
+- Docker Desktop
+- WSL 2 en Windows. Si no está instalado, abre PowerShell como administrador y
+  ejecuta `wsl --install`; después reinicia Windows si se solicita.
 
-- **Home** (`/`): portal público de bienvenida, con acceso a iniciar sesión.
-- **Login** (`/login`): autentica y redirige automáticamente según el rol.
-- **Panel del Paciente**:
-  - `/paciente/agendar` — agendar cita (especialidad → médico → horario → confirmar).
-  - `/paciente/historial` — ver y cancelar sus propias citas.
-- **Panel del Médico** (`/medico`): agenda del día propia, con nombre del
-  paciente en cada cita. Ya **no comparte pantalla con el paciente**.
-- **Panel Administrativo** (`/admin`): vista global de citas del centro médico
-  con contadores de confirmadas/canceladas.
+PostgreSQL se ejecuta en Docker. No es necesario instalar PostgreSQL
+directamente en Windows.
 
-El backend ahora valida el rol en cada endpoint (un paciente no puede leer
-la agenda de un médico, ni un médico la vista administrativa) — devuelve
-`403 Forbidden` si el rol no corresponde.
+## Instalación inicial
 
-## Estructura
+Abre Docker Desktop, espera a que termine de iniciar y ejecuta desde la raíz
+del proyecto:
 
-```
-clisensa/
-├── backend/     API REST (Node.js + Express)
-└── frontend/    Interfaz web (React + Vite + React Router)
+```powershell
+cd C:\Users\HP\Downloads\clisensa
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\setup-windows.ps1
 ```
 
-## Cómo ejecutarlo localmente
+El script instala las dependencias, crea `backend\.env`, inicia PostgreSQL,
+ejecuta las migraciones de Prisma y carga los datos de prueba. Solo necesitas
+ejecutarlo la primera vez o después de clonar el proyecto en otro equipo.
 
-### 1. Backend
+## Flujo diario
 
-```bash
-cd backend
-cp .env.example .env
-npm install
-npm run dev
+Después de completar la instalación inicial:
+
+1. Abre Docker Desktop y espera a que esté iniciado.
+2. Haz doble clic en `iniciar.bat`.
+3. Abre http://localhost:5173.
+4. Cuando termines, cierra las ventanas del backend y frontend.
+5. Haz doble clic en `detener.bat` para detener PostgreSQL sin borrar datos.
+
+## Iniciar todo
+
+Después de la instalación inicial, Docker Desktop debe estar abierto. Puedes
+iniciar la aplicación de cualquiera de estas formas:
+
+### Con doble clic
+
+Abre la carpeta `C:\Users\HP\Downloads\clisensa` en el Explorador de archivos
+y haz doble clic en [`iniciar.bat`](./iniciar.bat). El archivo abre dos
+ventanas de PowerShell: una para el backend y otra para el frontend. Déjalas
+abiertas mientras uses el sistema.
+
+### Desde PowerShell
+
+```powershell
+cd C:\Users\HP\Downloads\clisensa
+.\scripts\start-windows.ps1
 ```
 
-API disponible en `http://localhost:4000`. Verificación rápida:
-`http://localhost:4000/api/health`.
+El script comprueba Docker, inicia PostgreSQL, espera a que esté saludable,
+aplica las migraciones y abre backend y frontend automáticamente.
 
-### 2. Frontend (en otra terminal)
+## URLs
 
-```bash
-cd frontend
-npm install
-npm run dev
+- Aplicación: http://localhost:5173
+- API: http://localhost:4000
+- Healthcheck: http://localhost:4000/api/health
+
+## Cuentas de prueba
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Paciente | `paciente@demo.com` | `1234` |
+| Médico | `medico@demo.com` | `1234` |
+| Administrativo | `admin@demo.com` | `1234` |
+
+## Detener PostgreSQL
+
+Cierra las ventanas del backend y frontend. Para detener PostgreSQL sin borrar
+sus datos:
+
+```powershell
+cd C:\Users\HP\Downloads\clisensa
+docker compose stop db
 ```
 
-Aplicación disponible en `http://localhost:5173`.
+Para iniciar nuevamente, usa `iniciar.bat`.
 
-### Cuentas de prueba
+También puedes hacer doble clic en [`detener.bat`](./detener.bat) desde la
+carpeta del proyecto. Detiene PostgreSQL sin borrar sus datos, cierra Docker
+Desktop y ejecuta `wsl --shutdown`.
 
-| Rol | Correo | Contraseña | A dónde va al iniciar sesión |
-|---|---|---|---|
-| Paciente | paciente@demo.com | 1234 | Agendar Cita |
-| Médico | medico@demo.com | 1234 | Agenda del Día |
-| Administrativo | admin@demo.com | 1234 | Panel Administrativo |
+## Apagado completo en Windows
 
-## Endpoints del backend
+`detener.bat` realiza automáticamente el apagado completo: detiene PostgreSQL,
+cierra Docker Desktop y ejecuta `wsl --shutdown` para liberar la memoria de
+WSL 2. Si prefieres hacerlo manualmente:
 
-| Método | Ruta | Rol requerido | Descripción |
-|---|---|---|---|
-| POST | `/api/auth/login` | — | Autenticación y emisión de JWT |
-| GET | `/api/medicos?especialidad=` | — | Listado de médicos filtrado |
-| GET | `/api/horarios/disponibles?medicoId=&fecha=` | — | Disponibilidad en tiempo real |
-| POST | `/api/citas` | paciente | Crear una cita |
-| GET | `/api/citas` | paciente | Listar mis citas |
-| PUT | `/api/citas/:id/cancelar` | paciente | Cancelar mi cita |
-| GET | `/api/citas/medico?fecha=` | medico | Agenda del día del médico autenticado |
-| GET | `/api/citas/todas?fecha=` | administrativo | Vista global de citas (reportes) |
+1. Cierra las ventanas del backend y frontend.
+2. Haz doble clic en `detener.bat`.
+3. Cierra Docker Desktop desde su icono en la bandeja del sistema:
+   **clic derecho → Quit Docker Desktop**.
+4. Abre PowerShell y ejecuta:
 
-## Qué falta (próximos avances)
+```powershell
+wsl --shutdown
+```
 
-- Persistencia real en PostgreSQL vía Prisma/Sequelize (hoy los datos viven
-  en memoria y se reinician al reiniciar el servidor).
-- Registro de nuevos pacientes (hoy solo hay usuarios semilla).
-- Reprogramación de citas (hoy solo se puede cancelar, RF03 parcial).
-- Gestión de médicos/horarios desde el Panel Administrativo (RF06, RF07).
-- Documentación OpenAPI/Swagger de la API.
-- Recordatorios automáticos por correo (RF05).
+Puedes comprobar que no haya distribuciones WSL activas con:
 
-## Documentación relacionada
+```powershell
+wsl --list --running
+```
 
-Los documentos de la Fase 1 (Diagnóstico, Marco Lógico, Ingeniería de
-Requisitos, Arquitectura y Diagramas UWE) se encuentran en la carpeta
-`docs/` de este mismo repositorio.
+Si aparece `Ubuntu`, puedes detenerla específicamente y repetir el apagado:
+
+```powershell
+wsl --terminate Ubuntu
+wsl --shutdown
+```
+
+`vmmemWSL` puede tardar unos segundos en desaparecer del Administrador de
+tareas. No lo finalices manualmente; `wsl --shutdown` es la forma segura de
+liberar la memoria. Para volver a trabajar, abre Docker Desktop y después
+ejecuta `iniciar.bat`.
+
+## Estructura principal
+
+```text
+backend/              API Express y Prisma
+backend/prisma/       Esquema, migraciones y seed
+frontend/             Aplicación React
+docker-compose.yml    PostgreSQL local
+scripts/              Automatización para Windows
+iniciar.bat           Lanzador de toda la aplicación
+detener.bat           Detiene PostgreSQL sin borrar datos
+```
+
+## Solución rápida de problemas
+
+- **Docker no responde:** abre Docker Desktop y espera a que termine de
+  iniciar.
+- **Puerto ocupado:** libera los puertos `4000`, `5173` o `5432`.
+- **`docker compose` no encuentra configuración:** ejecuta el comando desde
+  `C:\Users\HP\Downloads\clisensa`.
+- **`iniciar.bat` no funciona desde Ubuntu/WSL:** ejecútalo con doble clic en
+  Windows o desde PowerShell; es un archivo de Windows.
+
+## Rutas y colaboración
+
+Los scripts no dependen de una ruta fija. Usan la carpeta donde está el propio
+archivo, por lo que funcionan aunque cada participante clone el repositorio en
+una ubicación diferente.
+
+Los archivos locales `backend\.env`, `.env`, `node_modules`, `dist` y los datos
+de PostgreSQL no se suben al repositorio. Cada participante debe instalar sus
+propias dependencias y tener Docker Desktop iniciado.
