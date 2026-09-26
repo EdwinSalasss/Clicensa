@@ -1,17 +1,23 @@
 import { Router } from "express";
-import { medicos } from "../data/seed.js";
+import { prisma } from "../db/prisma.js";
 
 const router = Router();
 
 // GET /api/medicos?especialidad=Medicina General
-router.get("/", (req, res) => {
-  const { especialidad } = req.query;
-  const resultado = especialidad
-    ? medicos.filter((m) =>
-        m.especialidad.toLowerCase().includes(especialidad.toLowerCase())
-      )
-    : medicos;
-  res.json(resultado);
+router.get("/", async (req, res) => {
+  try {
+    const { especialidad } = req.query;
+    const medicos = await prisma.medico.findMany({
+      where: especialidad
+        ? { especialidad: { contains: especialidad, mode: "insensitive" } }
+        : undefined,
+      orderBy: { nombre: "asc" },
+    });
+    res.json(medicos);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al consultar medicos" });
+  }
 });
 
 export default router;

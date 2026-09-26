@@ -1,0 +1,25 @@
+# Levanta PostgreSQL para desarrollo local.
+# Uso: docker compose up -d
+# (colocar este archivo en la raiz del proyecto, junto a /backend y /frontend)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clisensa_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clisensa
+      POSTGRES_PASSWORD: clisensa_dev
+      POSTGRES_DB: clisensa
+    ports:
+      - "5432:5432"
+    volumes:
+      - clisensa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clisensa -d clisensa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  clisensa_pgdata:
