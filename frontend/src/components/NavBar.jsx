@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { getUsuario, cerrarSesion } from "../api/session.js";
 
 const TABS_POR_ROL = {
@@ -7,7 +7,10 @@ const TABS_POR_ROL = {
     { to: "/paciente/historial", label: "Historial de Citas" },
   ],
   medico: [{ to: "/medico", label: "Agenda del Dia" }],
-  administrativo: [{ to: "/admin", label: "Panel Administrativo" }],
+  administrativo: [
+    { to: "/admin", label: "Panel Administrativo" },
+    { to: "/admin/medicos", label: "Médicos y Horarios" },
+  ],
 };
 
 export default function NavBar() {
@@ -35,7 +38,11 @@ export default function NavBar() {
         ))}
       </div>
       <div className="userbox">
-        <span>{usuario ? `${usuario.nombre} · ${usuario.rol}` : ""}</span>
+        {usuario && (
+          <Link to="/perfil">
+            {usuario.nombre} · {usuario.rol}
+          </Link>
+        )}
         <button className="logout" onClick={salir}>Cerrar sesion</button>
       </div>
     </div>

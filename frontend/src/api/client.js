@@ -22,6 +22,11 @@ async function request(path, options = {}) {
 export const api = {
   login: (correo, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ correo, password }) }),
+  registrar: (nombre, correo, password) =>
+    request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ nombre, correo, password }),
+    }),
 
   medicos: (especialidad) =>
     request(`/medicos${especialidad ? `?especialidad=${encodeURIComponent(especialidad)}` : ""}`),
@@ -34,10 +39,27 @@ export const api = {
     request("/citas", { method: "POST", body: JSON.stringify({ medicoId, fecha, hora }) }),
   misCitas: () => request("/citas"),
   cancelarCita: (id) => request(`/citas/${id}/cancelar`, { method: "PUT" }),
+  reprogramarCita: (id, fecha, hora) =>
+    request(`/citas/${id}/reprogramar`, {
+      method: "PUT",
+      body: JSON.stringify({ fecha, hora }),
+    }),
 
   // Medico
   agendaMedico: (fecha) => request(`/citas/medico?fecha=${fecha}`),
 
   // Administrativo
   citasTodas: (fecha) => request(`/citas/todas${fecha ? `?fecha=${fecha}` : ""}`),
+  crearMedico: (nombre, especialidad) =>
+    request("/medicos", {
+      method: "POST",
+      body: JSON.stringify({ nombre, especialidad }),
+    }),
+  agregarHorario: (medicoId, hora) =>
+    request(`/medicos/${medicoId}/horarios`, {
+      method: "POST",
+      body: JSON.stringify({ hora }),
+    }),
+  quitarHorario: (medicoId, horarioId) =>
+    request(`/medicos/${medicoId}/horarios/${horarioId}`, { method: "DELETE" }),
 };

@@ -6,6 +6,10 @@ export default function HistorialCitas() {
   const [citas, setCitas] = useState([]);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [editandoId, setEditandoId] = useState(null);
+  const [fechaEditada, setFechaEditada] = useState("");
+  const [horaEditada, setHoraEditada] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
   function cargar() {
     setCargando(true);
@@ -19,11 +23,39 @@ export default function HistorialCitas() {
   useEffect(cargar, []);
 
   async function cancelar(id) {
+    setError("");
     try {
       await api.cancelarCita(id);
       cargar();
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  function iniciarEdicion(cita) {
+    setError("");
+    setEditandoId(cita.id);
+    setFechaEditada(cita.fecha);
+    setHoraEditada(cita.hora);
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null);
+    setFechaEditada("");
+    setHoraEditada("");
+  }
+
+  async function guardarReprogramacion(id) {
+    setError("");
+    setGuardando(true);
+    try {
+      await api.reprogramarCita(id, fechaEditada, horaEditada);
+      cancelarEdicion();
+      cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -53,15 +85,52 @@ export default function HistorialCitas() {
             <tbody>
               {citas.map((c) => (
                 <tr key={c.id}>
-                  <td>{c.fecha}</td>
-                  <td>{c.hora}</td>
+                  <td>
+                    {editandoId === c.id ? (
+                      <input
+                        type="date"
+                        value={fechaEditada}
+                        onChange={(e) => setFechaEditada(e.target.value)}
+                        aria-label="Nueva fecha"
+                      />
+                    ) : c.fecha}
+                  </td>
+                  <td>
+                    {editandoId === c.id ? (
+                      <input
+                        type="text"
+                        value={horaEditada}
+                        onChange={(e) => setHoraEditada(e.target.value)}
+                        placeholder="HH:mm"
+                        aria-label="Nueva hora"
+                      />
+                    ) : c.hora}
+                  </td>
                   <td>{c.medicoNombre}</td>
                   <td><span className={`badge ${c.estado}`}>{c.estado}</span></td>
                   <td>
-                    {c.estado === "confirmada" && (
-                      <button className="danger" onClick={() => cancelar(c.id)}>
-                        Cancelar
-                      </button>
+                    {editandoId === c.id ? (
+                      <div className="acciones-inline">
+                        <button
+                          className="secondary"
+                          onClick={() => guardarReprogramacion(c.id)}
+                          disabled={guardando || !fechaEditada || !horaEditada}
+                        >
+                          {guardando ? "Guardando..." : "Guardar"}
+                        </button>
+                        <button className="ghost" onClick={cancelarEdicion} disabled={guardando}>
+                          Cancelar edición
+                        </button>
+                      </div>
+                    ) : c.estado === "confirmada" && (
+                      <div className="acciones-inline">
+                        <button className="ghost" onClick={() => iniciarEdicion(c)}>
+                          Reprogramar
+                        </button>
+                        <button className="danger" onClick={() => cancelar(c.id)}>
+                          Cancelar
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

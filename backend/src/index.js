@@ -1,6 +1,11 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import swaggerUi from "swagger-ui-express";
+import yaml from "js-yaml";
 
 import authRoutes from "./routes/auth.routes.js";
 import medicosRoutes from "./routes/medicos.routes.js";
@@ -9,6 +14,12 @@ import citasRoutes from "./routes/citas.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const openapiPath = path.resolve(
+  fileURLToPath(new URL("../openapi.yaml", import.meta.url))
+);
+const openapiSpec = yaml.load(
+  fs.readFileSync(openapiPath, "utf8")
+);
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
@@ -21,6 +32,9 @@ app.use((req, _res, next) => {
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", servicio: "CLISENSA API", version: "0.2.0" });
 });
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+app.get("/api/openapi.json", (_req, res) => res.json(openapiSpec));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/medicos", medicosRoutes);

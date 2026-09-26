@@ -32,16 +32,17 @@ ejecutarlo la primera vez o después de clonar el proyecto en otro equipo.
 
 Después de completar la instalación inicial:
 
-1. Abre Docker Desktop y espera a que esté iniciado.
-2. Haz doble clic en `iniciar.bat`.
-3. Abre http://localhost:5173.
-4. Cuando termines, cierra las ventanas del backend y frontend.
-5. Haz doble clic en `detener.bat` para detener PostgreSQL sin borrar datos.
+1. Haz doble clic en `iniciar.bat`. Si Docker Desktop está cerrado, el script
+   intentará iniciarlo y esperará a que el motor esté listo.
+2. Abre http://localhost:5173.
+3. Cuando termines, cierra las ventanas del backend y frontend.
+4. Haz doble clic en `detener.bat` para detener PostgreSQL sin borrar datos y
+   cerrar Docker Desktop y WSL 2.
 
 ## Iniciar todo
 
-Después de la instalación inicial, Docker Desktop debe estar abierto. Puedes
-iniciar la aplicación de cualquiera de estas formas:
+Después de la instalación inicial, puedes iniciar la aplicación de cualquiera
+de estas formas:
 
 ### Con doble clic
 
@@ -57,14 +58,37 @@ cd C:\Users\HP\Downloads\clisensa
 .\scripts\start-windows.ps1
 ```
 
-El script comprueba Docker, inicia PostgreSQL, espera a que esté saludable,
-aplica las migraciones y abre backend y frontend automáticamente.
+El script inicia Docker Desktop si está cerrado, inicia PostgreSQL, espera a
+que esté saludable, aplica las migraciones y abre backend y frontend.
 
 ## URLs
 
 - Aplicación: http://localhost:5173
 - API: http://localhost:4000
 - Healthcheck: http://localhost:4000/api/health
+- Documentación interactiva de la API (Swagger): http://localhost:4000/api/docs
+- Especificación OpenAPI en JSON: http://localhost:4000/api/openapi.json
+
+La colección de pruebas para importar en Postman está en
+`backend/postman/CLISENSA.postman_collection.json`.
+
+## Endpoints principales
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `POST` | `/api/auth/login` | Público |
+| `POST` | `/api/auth/register` | Público; crea paciente |
+| `GET` | `/api/medicos` | Público |
+| `POST` | `/api/medicos` | Administrativo |
+| `POST` | `/api/medicos/:id/horarios` | Administrativo |
+| `DELETE` | `/api/medicos/:id/horarios/:horarioId` | Administrativo |
+| `GET` | `/api/horarios/disponibles` | Público |
+| `POST` | `/api/citas` | Paciente |
+| `GET` | `/api/citas` | Paciente |
+| `PUT` | `/api/citas/:id/cancelar` | Paciente |
+| `PUT` | `/api/citas/:id/reprogramar` | Paciente |
+| `GET` | `/api/citas/medico` | Médico |
+| `GET` | `/api/citas/todas` | Administrativo |
 
 ## Cuentas de prueba
 
@@ -155,3 +179,7 @@ una ubicación diferente.
 Los archivos locales `backend\.env`, `.env`, `node_modules`, `dist` y los datos
 de PostgreSQL no se suben al repositorio. Cada participante debe instalar sus
 propias dependencias y tener Docker Desktop iniciado.
+
+`npm run db:seed` sincroniza las cuentas y horarios de demostración sin borrar
+citas existentes. Las reservas activas tienen además una restricción única en
+PostgreSQL para impedir que solicitudes simultáneas ocupen el mismo horario.

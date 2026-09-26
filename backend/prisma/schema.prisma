@@ -72,9 +72,8 @@ model Cita {
   estado     EstadoCita @default(confirmada)
   creadaEn   DateTime   @default(now())
 
-  // Nota: no se usa @@unique([medicoId, fecha, hora]) a nivel de BD porque
-  // una cita cancelada SI debe liberar el horario (igual que en el codigo original).
-  // La validacion de "horario ya ocupado" se hace en la ruta, filtrando estado != cancelada.
+  // La migracion agrega un indice unico parcial para impedir reservas simultaneas
+  // del mismo horario activo; Prisma no representa indices parciales en el schema.
   @@index([medicoId, fecha])
   @@index([pacienteId])
   @@map("citas")

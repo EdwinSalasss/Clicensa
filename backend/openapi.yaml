@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: CLISENSA API
-  description: API REST del Sistema de Gestión de Citas Médicas (CLISENSA)
-  version: 0.3.0
+  description: API REST del Sistema de Gestión de Citas Médicas del Centro Médico Nueva Esperanza.
+  version: 0.4.0
 servers:
   - url: http://localhost:4000/api
     description: Desarrollo local
@@ -16,7 +16,7 @@ paths:
   /auth/login:
     post:
       tags: [Auth]
-      summary: Autenticar usuario y obtener token JWT
+      summary: Iniciar sesión y obtener un token JWT
       requestBody:
         required: true
         content:
@@ -25,31 +25,47 @@ paths:
               type: object
               required: [correo, password]
               properties:
-                correo: { type: string, example: paciente@demo.com }
+                correo: { type: string, format: email, example: paciente@demo.com }
                 password: { type: string, example: "1234" }
       responses:
         "200":
-          description: Login exitoso
+          description: Inicio de sesión exitoso
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token: { type: string }
-                  usuario:
-                    type: object
-                    properties:
-                      id: { type: integer }
-                      nombre: { type: string }
-                      rol: { type: string, enum: [paciente, medico, administrativo] }
-                      medicoId: { type: integer, nullable: true }
-        "401":
-          description: Credenciales inválidas
+                $ref: "#/components/schemas/RespuestaAutenticacion"
+        "400": { description: Faltan credenciales }
+        "401": { description: Credenciales inválidas }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar paciente e iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, correo, password]
+              properties:
+                nombre: { type: string, example: Ana Paciente }
+                correo: { type: string, format: email, example: ana@example.com }
+                password: { type: string, minLength: 1, example: "1234" }
+      responses:
+        "201":
+          description: Paciente registrado y autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaAutenticacion"
+        "400": { description: Faltan campos requeridos o el correo tiene formato inválido }
+        "409": { description: El correo ya está registrado }
 
   /medicos:
     get:
       tags: [Medicos]
-      summary: Listar médicos (opcionalmente filtrados por especialidad)
+      summary: Listar médicos y sus horarios base
       parameters:
         - in: query
           name: especialidad
@@ -62,16 +78,95 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id: { type: integer }
-                    nombre: { type: string }
-                    especialidad: { type: string }
+                  $ref: "#/components/schemas/MedicoConHorarios"
+    post:
+      tags: [Medicos]
+      summary: Crear médico (rol administrativo)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, especialidad]
+              properties:
+                nombre: { type: string, example: Dra. L. Torres }
+                especialidad: { type: string, example: Ginecologia }
+      responses:
+        "201":
+          description: Médico creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medico"
+        "400": { description: Faltan campos requeridos }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol administrativo }
+
+  /medicos/{id}/horarios:
+    post:
+      tags: [Medicos]
+      summary: Agregar horario base a un médico (rol administrativo)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hora]
+              properties:
+                hora: { type: string, pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", example: "09:00" }
+      responses:
+        "201":
+          description: Horario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HorarioBase"
+        "400": { description: La hora falta o tiene formato inválido }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol administrativo }
+        "404": { description: Médico no encontrado }
+        "409": { description: El horario ya existe }
+
+  /medicos/{id}/horarios/{horarioId}:
+    delete:
+      tags: [Medicos]
+      summary: Quitar horario base de un médico (rol administrativo)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: horarioId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Horario eliminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol administrativo }
+        "404": { description: Horario no encontrado para ese médico }
 
   /horarios/disponibles:
     get:
       tags: [Horarios]
-      summary: Horarios disponibles de un médico en una fecha
+      summary: Consultar horarios libres de un médico en una fecha
       parameters:
         - in: query
           name: medicoId
@@ -80,7 +175,7 @@ paths:
         - in: query
           name: fecha
           required: true
-          schema: { type: string, format: date, example: "2026-09-16" }
+          schema: { type: string, format: date, example: "2026-09-30" }
       responses:
         "200":
           description: Horarios disponibles
@@ -90,15 +185,16 @@ paths:
                 type: object
                 properties:
                   medicoId: { type: integer }
-                  fecha: { type: string }
+                  fecha: { type: string, format: date }
                   disponibles:
                     type: array
                     items: { type: string, example: "09:00" }
+        "400": { description: Parámetros requeridos faltantes o inválidos }
 
   /citas:
     post:
       tags: [Citas]
-      summary: Agendar una cita (rol paciente)
+      summary: Agendar cita (rol paciente)
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -108,24 +204,44 @@ paths:
               type: object
               required: [medicoId, fecha, hora]
               properties:
-                medicoId: { type: integer }
-                fecha: { type: string, format: date }
+                medicoId: { type: integer, example: 1 }
+                fecha: { type: string, format: date, example: "2026-09-30" }
                 hora: { type: string, example: "09:00" }
       responses:
-        "201": { description: Cita creada }
+        "201":
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cita"
         "400": { description: Datos inválidos u horario inexistente }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol paciente }
         "409": { description: Horario ya reservado }
     get:
       tags: [Citas]
-      summary: Listar las citas del paciente autenticado
+      summary: Listar citas del paciente autenticado
       security: [{ bearerAuth: [] }]
       responses:
-        "200": { description: Lista de citas del paciente }
+        "200":
+          description: Citas del paciente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Cita"
+                    - type: object
+                      properties:
+                        medicoNombre: { type: string }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol paciente }
 
   /citas/{id}/cancelar:
     put:
       tags: [Citas]
-      summary: Cancelar una cita propia (rol paciente)
+      summary: Cancelar cita propia (rol paciente)
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -133,14 +249,53 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        "200": { description: Cita cancelada }
-        "403": { description: No autorizado }
+        "200":
+          description: Cita cancelada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cita"
+        "401": { description: Falta autenticación }
+        "403": { description: Cita ajena o rol incorrecto }
         "404": { description: Cita no encontrada }
+
+  /citas/{id}/reprogramar:
+    put:
+      tags: [Citas]
+      summary: Reprogramar cita propia (rol paciente)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fecha, hora]
+              properties:
+                fecha: { type: string, format: date, example: "2026-10-01" }
+                hora: { type: string, example: "09:30" }
+      responses:
+        "200":
+          description: Cita reprogramada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cita"
+        "400": { description: Datos inválidos, cita cancelada u horario inexistente }
+        "401": { description: Falta autenticación }
+        "403": { description: Cita ajena o rol incorrecto }
+        "404": { description: Cita no encontrada }
+        "409": { description: Nuevo horario ya reservado }
 
   /citas/medico:
     get:
       tags: [Citas]
-      summary: Agenda del día del médico autenticado (rol medico)
+      summary: Consultar agenda del médico autenticado
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
@@ -148,12 +303,14 @@ paths:
           required: true
           schema: { type: string, format: date }
       responses:
-        "200": { description: Agenda del día }
+        "200": { description: Agenda del médico }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol médico }
 
   /citas/todas:
     get:
       tags: [Citas]
-      summary: Vista global de citas (rol administrativo)
+      summary: Consultar citas del centro (rol administrativo)
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
@@ -161,7 +318,9 @@ paths:
           required: false
           schema: { type: string, format: date }
       responses:
-        "200": { description: Todas las citas del centro médico }
+        "200": { description: Citas del centro médico }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere rol administrativo }
 
 components:
   securitySchemes:
@@ -169,3 +328,54 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  schemas:
+    UsuarioPublico:
+      type: object
+      required: [id, nombre, correo, rol, medicoId]
+      properties:
+        id: { type: integer }
+        nombre: { type: string }
+        correo: { type: string, format: email }
+        rol: { type: string, enum: [paciente, medico, administrativo] }
+        medicoId: { type: integer, nullable: true }
+    RespuestaAutenticacion:
+      type: object
+      required: [token, usuario]
+      properties:
+        token: { type: string }
+        usuario:
+          $ref: "#/components/schemas/UsuarioPublico"
+    Medico:
+      type: object
+      required: [id, nombre, especialidad]
+      properties:
+        id: { type: integer }
+        nombre: { type: string }
+        especialidad: { type: string }
+    HorarioBase:
+      type: object
+      required: [id, medicoId, hora]
+      properties:
+        id: { type: integer }
+        medicoId: { type: integer }
+        hora: { type: string, example: "09:00" }
+    MedicoConHorarios:
+      allOf:
+        - $ref: "#/components/schemas/Medico"
+        - type: object
+          properties:
+            horarios:
+              type: array
+              items:
+                $ref: "#/components/schemas/HorarioBase"
+    Cita:
+      type: object
+      required: [id, pacienteId, medicoId, fecha, hora, estado, creadaEn]
+      properties:
+        id: { type: integer }
+        pacienteId: { type: integer }
+        medicoId: { type: integer }
+        fecha: { type: string, format: date }
+        hora: { type: string, example: "09:00" }
+        estado: { type: string, enum: [confirmada, cancelada] }
+        creadaEn: { type: string, format: date-time }

@@ -87,11 +87,32 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 .navbar .tabs a.active, .navbar .tabs a:hover { background: rgba(255,255,255,0.15); color: white; }
 .navbar .userbox { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.navbar .userbox a { color: #D6E9F8; text-decoration: none; }
+.navbar .userbox a:hover { color: white; text-decoration: underline; }
 .navbar button.logout {
   margin: 0;
   padding: 6px 12px;
   font-size: 12px;
   background: rgba(255,255,255,0.15);
+}
+.acciones-inline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.acciones-inline button { margin-top: 4px; padding: 7px 10px; font-size: 12px; }
+.horarios-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.horario-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 14px;
+  background: #D6E9F8;
+  color: #1B3A5C;
+  font-size: 12px;
+}
+.horario-chip button {
+  margin: 0;
+  padding: 0 4px;
+  background: transparent;
+  color: #B3412B;
 }
 
 /* ---------- Tablas ---------- */

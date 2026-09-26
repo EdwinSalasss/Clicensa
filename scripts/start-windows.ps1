@@ -11,7 +11,26 @@ foreach ($command in @("node", "npm", "docker")) {
 
 docker info *> $null
 if ($LASTEXITCODE -ne 0) {
-  throw "Docker Desktop no esta iniciado. Abrelo y vuelve a ejecutar este comando."
+  Write-Host "Iniciando Docker Desktop..." -ForegroundColor Cyan
+  docker desktop start --detach
+  if ($LASTEXITCODE -ne 0) {
+    throw "No se pudo iniciar Docker Desktop. Abrelo manualmente y vuelve a ejecutar este comando."
+  }
+
+  $dockerListo = $false
+  for ($attempt = 1; $attempt -le 60; $attempt++) {
+    Start-Sleep -Seconds 2
+    docker info *> $null
+    if ($LASTEXITCODE -eq 0) {
+      $dockerListo = $true
+      break
+    }
+    Write-Host "Esperando a que Docker Desktop este listo ($attempt/60)..."
+  }
+
+  if (-not $dockerListo) {
+    throw "Docker Desktop no inicio a tiempo. Revisa Docker Desktop y vuelve a intentar."
+  }
 }
 
 if (-not (Test-Path "backend\.env")) {

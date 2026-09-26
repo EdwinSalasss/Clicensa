@@ -1,4 +1,4 @@
-// Puebla PostgreSQL con los mismos datos de demo que tenia data/seed.js
+// Carga en PostgreSQL los datos de demostración y conserva las citas existentes.
 // Uso: npm run db:seed
 
 import { PrismaClient } from "@prisma/client";
@@ -7,23 +7,16 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Sembrando datos de demo...");
+  console.log("Sincronizando datos de demo sin borrar citas...");
 
-  // Limpia en orden por las relaciones (citas -> horarios -> usuarios/medicos)
-  await prisma.cita.deleteMany();
-  await prisma.horarioBase.deleteMany();
-  await prisma.usuario.deleteMany();
-  await prisma.medico.deleteMany();
+  const asegurarMedico = async (nombre, especialidad) => {
+    const existente = await prisma.medico.findFirst({ where: { nombre, especialidad } });
+    return existente || prisma.medico.create({ data: { nombre, especialidad } });
+  };
 
-  const medicoRamos = await prisma.medico.create({
-    data: { nombre: "Dra. P. Ramos", especialidad: "Medicina General" },
-  });
-  const medicoFuentes = await prisma.medico.create({
-    data: { nombre: "Dr. J. Fuentes", especialidad: "Pediatria" },
-  });
-  const medicoTorres = await prisma.medico.create({
-    data: { nombre: "Dra. L. Torres", especialidad: "Ginecologia" },
-  });
+  const medicoRamos = await asegurarMedico("Dra. P. Ramos", "Medicina General");
+  const medicoFuentes = await asegurarMedico("Dr. J. Fuentes", "Pediatria");
+  const medicoTorres = await asegurarMedico("Dra. L. Torres", "Ginecologia");
 
   const horariosPorMedico = {
     [medicoRamos.id]: ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30"],
@@ -32,38 +25,58 @@ async function main() {
   };
 
   for (const [medicoId, horas] of Object.entries(horariosPorMedico)) {
-    await prisma.horarioBase.createMany({
-      data: horas.map((hora) => ({ medicoId: Number(medicoId), hora })),
-    });
+    for (const hora of horas) {
+      await prisma.horarioBase.upsert({
+        where: { medicoId_hora: { medicoId: Number(medicoId), hora } },
+        create: { medicoId: Number(medicoId), hora },
+        update: {},
+      });
+    }
   }
 
   const passwordHash = await bcrypt.hash("1234", 10);
 
-  await prisma.usuario.create({
-    data: {
+  await prisma.usuario.upsert({
+    where: { correo: "paciente@demo.com" },
+    create: {
       nombre: "Ana Paciente",
       correo: "paciente@demo.com",
       password: passwordHash,
       rol: "paciente",
     },
+    update: { nombre: "Ana Paciente", password: passwordHash, rol: "paciente", medicoId: null },
   });
 
-  await prisma.usuario.create({
-    data: {
+  await prisma.usuario.upsert({
+    where: { correo: "medico@demo.com" },
+    create: {
       nombre: "Dra. P. Ramos",
       correo: "medico@demo.com",
       password: passwordHash,
       rol: "medico",
       medicoId: medicoRamos.id,
     },
+    update: {
+      nombre: "Dra. P. Ramos",
+      password: passwordHash,
+      rol: "medico",
+      medicoId: medicoRamos.id,
+    },
   });
 
-  await prisma.usuario.create({
-    data: {
+  await prisma.usuario.upsert({
+    where: { correo: "admin@demo.com" },
+    create: {
       nombre: "Admin Recepcion",
       correo: "admin@demo.com",
       password: passwordHash,
       rol: "administrativo",
+    },
+    update: {
+      nombre: "Admin Recepcion",
+      password: passwordHash,
+      rol: "administrativo",
+      medicoId: null,
     },
   });
 

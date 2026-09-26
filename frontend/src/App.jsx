@@ -1,10 +1,13 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
+import Registro from "./pages/Registro.jsx";
 import AgendarCita from "./pages/AgendarCita.jsx";
 import HistorialCitas from "./pages/HistorialCitas.jsx";
 import MedicoPanel from "./pages/MedicoPanel.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
+import GestionMedicos from "./pages/GestionMedicos.jsx";
+import Perfil from "./pages/Perfil.jsx";
 import { estaAutenticado, getUsuario } from "./api/session.js";
 
 function RutaPrivada({ rolesPermitidos, children }) {
@@ -21,6 +24,15 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/registro" element={<Registro />} />
+      <Route
+        path="/perfil"
+        element={
+          <RutaPrivada>
+            <Perfil />
+          </RutaPrivada>
+        }
+      />
 
       <Route
         path="/paciente/agendar"
@@ -53,6 +65,14 @@ export default function App() {
         element={
           <RutaPrivada rolesPermitidos={["administrativo"]}>
             <AdminPanel />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/admin/medicos"
+        element={
+          <RutaPrivada rolesPermitidos={["administrativo"]}>
+            <GestionMedicos />
           </RutaPrivada>
         }
       />

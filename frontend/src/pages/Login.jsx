@@ -50,6 +50,9 @@ export default function Login() {
         Medico: medico@demo.com / 1234<br />
         Administrativo: admin@demo.com / 1234
       </div>
+      <p style={{ marginTop: 16, fontSize: 13 }}>
+        <Link to="/registro">¿Es nuevo paciente? Crear cuenta</Link>
+      </p>
     </div>
   );
 }
