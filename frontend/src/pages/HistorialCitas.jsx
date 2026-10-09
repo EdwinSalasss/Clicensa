@@ -64,7 +64,7 @@ export default function HistorialCitas() {
       <NavBar />
       <div className="panel">
         <h2>Historial de Citas</h2>
-        <p className="subtitle">Consulta tus citas agendadas, confirmadas y canceladas.</p>
+        <p className="subtitle">Consulta tus citas pendientes, confirmadas, atendidas y canceladas.</p>
 
         {error && <p className="error">{error}</p>}
         {cargando ? (
@@ -77,6 +77,8 @@ export default function HistorialCitas() {
               <tr>
                 <th>Fecha</th>
                 <th>Hora</th>
+                <th>Hospital</th>
+                <th>Servicio</th>
                 <th>Medico</th>
                 <th>Estado</th>
                 <th></th>
@@ -106,8 +108,10 @@ export default function HistorialCitas() {
                       />
                     ) : c.hora}
                   </td>
+                  <td>{c.hospitalNombre || "—"}</td>
+                  <td>{c.servicioNombre || "Consulta"}</td>
                   <td>{c.medicoNombre}</td>
-                  <td><span className={`badge ${c.estado}`}>{c.estado}</span></td>
+                  <td><span className={`badge ${c.estado.toLowerCase()}`}>{c.estado}</span></td>
                   <td>
                     {editandoId === c.id ? (
                       <div className="acciones-inline">
@@ -122,7 +126,7 @@ export default function HistorialCitas() {
                           Cancelar edición
                         </button>
                       </div>
-                    ) : c.estado === "confirmada" && (
+                    ) : ["PENDIENTE", "CONFIRMADA", "pendiente", "confirmada"].includes(c.estado) && (
                       <div className="acciones-inline">
                         <button className="ghost" onClick={() => iniciarEdicion(c)}>
                           Reprogramar

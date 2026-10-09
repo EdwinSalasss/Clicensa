@@ -18,9 +18,9 @@ export default function Home() {
       <div className="hero">
         <h1>CLISENSA</h1>
         <p>
-          Sistema de Gestión de Citas Médicas del Centro Médico Nueva Esperanza.
-          Agenda, reprograma y consulta tus citas en un solo lugar, sin llamadas
-          ni cuadernos.
+          Plataforma de citas médicas para una red de hospitales. Encuentra
+          servicios, consulta horarios disponibles y gestiona tu atención en un
+          solo lugar.
         </p>
         <button onClick={irAlSistema}>
           {estaAutenticado() ? "IR A MI PANEL" : "INICIAR SESION"}
@@ -35,8 +35,8 @@ export default function Home() {
         </div>
         <div className="feature-card">
           <div className="icon">🔔</div>
-          <h3>Recordatorios automáticos</h3>
-          <p>Recibe un aviso antes de tu cita para reducir el ausentismo.</p>
+          <h3>Próximas citas a la vista</h3>
+          <p>Consulta tu agenda y recibe un correo cuando se registre una cita nueva.</p>
         </div>
         <div className="feature-card">
           <div className="icon">🩺</div>

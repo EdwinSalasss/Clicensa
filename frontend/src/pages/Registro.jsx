@@ -5,6 +5,7 @@ import { rutaSegunRol } from "../api/session.js";
 
 export default function Registro() {
   const [nombre, setNombre] = useState("");
+  const [cedula, setCedula] = useState("");
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,7 +17,7 @@ export default function Registro() {
     setError("");
     setCargando(true);
     try {
-      const { token, usuario } = await api.registrar(nombre, correo, password);
+      const { token, usuario } = await api.registrar(nombre, correo, password, cedula);
       localStorage.setItem("clisensa_token", token);
       localStorage.setItem("clisensa_usuario", JSON.stringify(usuario));
       navigate(rutaSegunRol(usuario.rol));
@@ -44,6 +45,15 @@ export default function Registro() {
           autoComplete="name"
           required
         />
+        <label htmlFor="cedula">Cédula</label>
+        <input
+          id="cedula"
+          type="text"
+          value={cedula}
+          onChange={(e) => setCedula(e.target.value)}
+          autoComplete="off"
+          required
+        />
         <label htmlFor="correo">Correo electrónico</label>
         <input
           id="correo"
@@ -57,6 +67,7 @@ export default function Registro() {
         <input
           id="password"
           type="password"
+          minLength="8"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"

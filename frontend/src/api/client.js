@@ -22,21 +22,53 @@ async function request(path, options = {}) {
 export const api = {
   login: (correo, password) =>
     request("/auth/login", { method: "POST", body: JSON.stringify({ correo, password }) }),
-  registrar: (nombre, correo, password) =>
+  registrar: (nombre, correo, password, cedula) =>
     request("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ nombre, correo, password }),
+      body: JSON.stringify({ nombre, correo, password, cedula }),
+    }),
+  miPerfil: () => request("/auth/perfil"),
+  actualizarPerfil: (datos) =>
+    request("/auth/perfil", { method: "PUT", body: JSON.stringify(datos) }),
+
+  hospitales: () => request("/hospitales"),
+  crearHospital: (datos) =>
+    request("/admin/hospitales", { method: "POST", body: JSON.stringify(datos) }),
+  crearPersonal: (datos) =>
+    request("/admin/personal", { method: "POST", body: JSON.stringify(datos) }),
+  servicios: (hospitalId) => request(`/hospital/servicios?hospitalId=${hospitalId}`),
+  crearServicio: (datos) =>
+    request("/hospital/servicios", { method: "POST", body: JSON.stringify(datos) }),
+  invitarMedico: (datos) =>
+    request("/medicos/invitar", { method: "POST", body: JSON.stringify(datos) }),
+  medicos: (especialidad, hospitalId) => {
+    const params = new URLSearchParams();
+    if (especialidad) params.set("especialidad", especialidad);
+    if (hospitalId) params.set("hospitalId", hospitalId);
+    return request(`/medicos${params.size ? `?${params}` : ""}`);
+  },
+
+  horariosDisponibles: (medicoId, fecha, servicioId) => {
+    const params = new URLSearchParams({ medicoId, fecha });
+    if (servicioId) params.set("servicioId", servicioId);
+    return request(`/horarios/disponibles?${params}`);
+  },
+  miDisponibilidad: () => request("/horarios"),
+  guardarDisponibilidad: (disponibilidad) =>
+    request("/horarios", { method: "POST", body: JSON.stringify({ disponibilidad }) }),
+  miPerfilMedico: () => request("/medicos/perfil"),
+  actualizarPerfilMedico: (datos, token) =>
+    request("/medicos/perfil", {
+      method: "PUT",
+      body: JSON.stringify(datos),
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
     }),
 
-  medicos: (especialidad) =>
-    request(`/medicos${especialidad ? `?especialidad=${encodeURIComponent(especialidad)}` : ""}`),
-
-  horariosDisponibles: (medicoId, fecha) =>
-    request(`/horarios/disponibles?medicoId=${medicoId}&fecha=${fecha}`),
-
   // Paciente
-  crearCita: (medicoId, fecha, hora) =>
-    request("/citas", { method: "POST", body: JSON.stringify({ medicoId, fecha, hora }) }),
+  crearCita: (datos, fecha, hora) => {
+    const payload = typeof datos === "object" ? datos : { medicoId: datos, fecha, hora };
+    return request("/citas", { method: "POST", body: JSON.stringify(payload) });
+  },
   misCitas: () => request("/citas"),
   cancelarCita: (id) => request(`/citas/${id}/cancelar`, { method: "PUT" }),
   reprogramarCita: (id, fecha, hora) =>
@@ -47,6 +79,9 @@ export const api = {
 
   // Medico
   agendaMedico: (fecha) => request(`/citas/medico?fecha=${fecha}`),
+  cambiarEstadoCita: (id, estado) =>
+    request(`/citas/${id}/estado`, { method: "PUT", body: JSON.stringify({ estado }) }),
+  proximasCitas: () => request("/citas/proximas"),
 
   // Administrativo
   citasTodas: (fecha) => request(`/citas/todas${fecha ? `?fecha=${fecha}` : ""}`),

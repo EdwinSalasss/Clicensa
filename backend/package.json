@@ -1,7 +1,7 @@
 {
   "name": "clisensa-backend",
-  "version": "0.3.0",
-  "description": "CLISENSA - API REST del Sistema de Gestion de Citas Medicas (Fase 2 - PostgreSQL)",
+  "version": "0.5.0",
+  "description": "CLISENSA - API REST multi-hospital de citas médicas",
   "main": "src/index.js",
   "type": "module",
   "prisma": {
@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "test": "node --test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --name init",
     "db:seed": "prisma db seed",

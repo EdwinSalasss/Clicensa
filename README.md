@@ -27,6 +27,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 El script instala las dependencias, crea `backend\.env`, inicia PostgreSQL,
 ejecuta las migraciones de Prisma y carga los datos de prueba. Solo necesitas
 ejecutarlo la primera vez o después de clonar el proyecto en otro equipo.
+Después de aplicar una migración que cambia los roles, cierra sesión y vuelve a
+iniciarla para renovar el token JWT con el hospital asociado.
 
 ## Flujo diario
 
@@ -77,26 +79,92 @@ La colección de pruebas para importar en Postman está en
 | Método | Ruta | Acceso |
 |---|---|---|
 | `POST` | `/api/auth/login` | Público |
-| `POST` | `/api/auth/register` | Público; crea paciente |
+| `POST` | `/api/auth/register` | Público; crea paciente con cédula obligatoria |
+| `GET`, `PUT` | `/api/auth/perfil` | Cuenta autenticada; editar datos, imagen y contraseña |
+| `GET` | `/api/hospitales` | Público |
+| `POST` | `/api/admin/hospitales` | Administrador del sistema |
+| `POST` | `/api/admin/personal` | Administrador del sistema |
+| `GET`, `POST` | `/api/hospital/servicios` | Público para consulta; personal administrativo para crear |
 | `GET` | `/api/medicos` | Público |
-| `POST` | `/api/medicos` | Administrativo |
-| `POST` | `/api/medicos/:id/horarios` | Administrativo |
+| `POST` | `/api/medicos/invitar` | Personal administrativo |
+| `GET`, `PUT` | `/api/medicos/perfil` | Médico; PUT también acepta un token de activación |
+| `POST` | `/api/medicos` | Personal administrativo (compatibilidad) |
+| `POST` | `/api/horarios` | Médico; reemplaza disponibilidad semanal |
 | `DELETE` | `/api/medicos/:id/horarios/:horarioId` | Administrativo |
 | `GET` | `/api/horarios/disponibles` | Público |
-| `POST` | `/api/citas` | Paciente |
+| `POST` | `/api/citas` | Paciente o médico de la agenda |
 | `GET` | `/api/citas` | Paciente |
 | `PUT` | `/api/citas/:id/cancelar` | Paciente |
 | `PUT` | `/api/citas/:id/reprogramar` | Paciente |
-| `GET` | `/api/citas/medico` | Médico |
-| `GET` | `/api/citas/todas` | Administrativo |
+| `PUT` | `/api/citas/:id/estado` | Médico de la cita, personal del hospital o administrador del sistema |
+| `GET` | `/api/citas/medico` | Médico autenticado |
+| `GET` | `/api/citas/proximas` | Próximas citas visibles para la cuenta autenticada |
+| `GET` | `/api/citas/todas` | Personal del hospital o administrador del sistema |
 
 ## Cuentas de prueba
 
 | Rol | Correo | Contraseña |
 |---|---|---|
+| Administrador del sistema | `sistema@demo.com` | `1234` |
 | Paciente | `paciente@demo.com` | `1234` |
+| Paciente | `maria.lopez@demo.com` | `1234` |
+| Paciente | `jose.perez@demo.com` | `1234` |
+| Paciente | `lucia.gomez@demo.com` | `1234` |
 | Médico | `medico@demo.com` | `1234` |
+| Médico | `medico4@demo.com` | `1234` |
 | Administrativo | `admin@demo.com` | `1234` |
+| Administrativo | `admin.colinas@demo.com` | `1234` |
+
+La semilla crea además una segunda clínica, sus servicios y perfiles de
+demostración, horarios semanales y citas futuras de ejemplo. Puedes volver a
+cargar estos datos sin borrar las citas existentes con `npm run db:seed` desde
+`backend`.
+
+La cuenta inicial `ADMIN_SISTEMA` se configura con `ADMIN_SISTEMA_EMAIL` y
+`ADMIN_SISTEMA_PASSWORD` en `backend\.env`. La contraseña predeterminada `1234`
+es únicamente para desarrollo local; reemplázala antes de desplegar.
+
+## Funcionalidad multi-hospital
+
+- El administrador del sistema crea hospitales y sus cuentas administrativas
+  desde `/sistema`.
+- El personal administrativo gestiona el catálogo de servicios, invita
+  médicos y administra las citas de su hospital desde `/admin`. La gestión de
+  médicos y horarios heredada continúa disponible en `/admin/medicos`.
+- El médico completa su perfil desde el enlace de invitación, actualiza su
+  disponibilidad semanal, consulta su agenda y asigna citas buscando pacientes
+  por correo o cédula.
+- El paciente selecciona hospital, servicio, médico y horario en un flujo de
+  tres pasos; puede continuar reprogramando sus citas desde el historial.
+- Los perfiles permiten actualizar nombre, correo, imagen mediante archivo o URL y
+  contraseña con verificación de la contraseña actual. La cédula es obligatoria
+  al crear y actualizar una cuenta de paciente; las contraseñas nuevas requieren
+  al menos ocho caracteres. Los archivos de imagen admiten PNG, JPEG y WebP
+  hasta 512 KB.
+- Cada cuenta puede activar el modo oscuro desde la barra superior. La
+  navegación, formularios, selector visual de hospitales, tablas y paneles se
+  adaptan a pantallas de escritorio, tablet y teléfono.
+- La campana de notificaciones muestra hasta ocho citas futuras activas según
+  el rol y ámbito de acceso de la cuenta.
+- El administrador del sistema puede asociar un logo a cada hospital. Los
+  hospitales se muestran con su logo en el flujo de reserva y en el panel. Se
+  puede cargar un archivo PNG, JPEG o WebP de hasta 512 KB o proporcionar una
+  URL; las imágenes cargadas se almacenan en la base de datos.
+- Las citas nuevas quedan en estado `PENDIENTE`; los servicios determinan la
+  duración de los bloques de la agenda. La migración incremental asigna el
+  hospital y un servicio por defecto a los datos existentes y conserva las
+  citas. El índice único parcial continúa evitando reservas simultáneas,
+  incluidas las pendientes, y libera las citas canceladas.
+
+Las invitaciones y notificaciones de cita usan Resend. Para enviar invitaciones
+configura `RESEND_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` en `backend\.env`. Si
+el correo de invitación falla, se informa el error y no se conserva la cuenta
+invitada. Una cita sí se conserva si el correo de notificación falla; la API
+indica el resultado de la notificación en la respuesta.
+
+Se mantienen React, Vite, Express, Prisma y PostgreSQL y la hoja de estilos CSS
+existente: no se añade TailwindCSS ni se cambia el stack. La especificación
+actualizada está en `backend/openapi.yaml` y se sirve en `/api/docs`.
 
 ## Detener PostgreSQL
 

@@ -4,6 +4,9 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles.css";
 
+document.documentElement.dataset.theme =
+  localStorage.getItem("clisensa_theme") === "dark" ? "dark" : "light";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>

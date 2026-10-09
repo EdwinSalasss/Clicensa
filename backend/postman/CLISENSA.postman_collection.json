@@ -118,7 +118,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Paciente Postman\",\n  \"correo\": \"paciente.postman@example.com\",\n  \"password\": \"1234\"\n}",
+              "raw": "{\n  \"nombre\": \"Paciente Postman\",\n  \"correo\": \"paciente.postman@example.com\",\n  \"password\": \"Demo-Paciente-1234\",\n  \"cedula\": \"POSTMAN-PAC-001\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/auth/register"

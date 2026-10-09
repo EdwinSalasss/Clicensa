@@ -1,6 +1,3 @@
-// CLISENSA — Esquema de base de datos (Fase 2)
-// Sustituye los arreglos en memoria de src/data/seed.js por PostgreSQL.
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -11,70 +8,140 @@ generator client {
 }
 
 enum Rol {
-  paciente
-  medico
-  administrativo
+  ADMIN_SISTEMA
+  PERSONAL_ADMINISTRATIVO @map("administrativo")
+  MEDICO                  @map("medico")
+  PACIENTE                @map("paciente")
 }
 
 enum EstadoCita {
-  confirmada
-  cancelada
+  PENDIENTE  @map("pendiente")
+  CONFIRMADA @map("confirmada")
+  CANCELADA  @map("cancelada")
+  ATENDIDA   @map("atendida")
+}
+
+model Hospital {
+  id        Int            @id @default(autoincrement())
+  nombre    String
+  direccion String
+  telefono  String
+  logoUrl   String?
+  creadoEn  DateTime       @default(now())
+  usuarios  Usuario[]
+  medicos   Medico[]
+  servicios TipoServicio[]
+  citas     Cita[]
+
+  @@map("hospitales")
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  correo    String   @unique
-  password  String // hash bcrypt, nunca texto plano
-  rol       Rol
+  id           Int           @id @default(autoincrement())
+  nombre       String
+  correo       String        @unique
+  password     String
+  rol          Rol
+  cedula       String?       @unique
+  fotoUrl      String?
+  hospital     Hospital?     @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  hospitalId   Int?
+  medico       Medico?       @relation(fields: [medicoId], references: [id])
+  medicoId     Int?          @unique
+  perfilMedico PerfilMedico?
+  citas        Cita[]
+  activadoEn   DateTime?
+  creadoEn     DateTime      @default(now())
 
-  // Si el usuario es un medico, se enlaza a su ficha de Medico
-  medico    Medico?  @relation(fields: [medicoId], references: [id])
-  medicoId  Int?     @unique
-
-  citas     Cita[]
-  creadoEn  DateTime @default(now())
-
+  @@index([hospitalId, rol])
   @@map("usuarios")
 }
 
 model Medico {
-  id           Int           @id @default(autoincrement())
-  nombre       String
-  especialidad String
+  id             Int                     @id @default(autoincrement())
+  nombre         String
+  especialidad   String
+  hospital       Hospital?               @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  hospitalId     Int?
+  usuario        Usuario?
+  perfil         PerfilMedico?
+  horarios       HorarioBase[]
+  disponibilidad HorarioDisponibilidad[]
+  citas          Cita[]
 
-  usuario      Usuario?
-  horarios     HorarioBase[]
-  citas        Cita[]
-
+  @@index([hospitalId])
   @@map("medicos")
 }
 
-// Horario base de atencion de cada medico (independiente de la fecha)
+model PerfilMedico {
+  id             Int     @id @default(autoincrement())
+  usuarioId      Int     @unique
+  medicoId       Int     @unique
+  nombreCompleto String
+  licenciaMedica String  @unique
+  especialidad   String
+  biografia      String  @default("")
+  fotoUrl        String?
+  usuario        Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  medico         Medico  @relation(fields: [medicoId], references: [id], onDelete: Cascade)
+
+  @@map("perfiles_medicos")
+}
+
+model TipoServicio {
+  id          Int      @id @default(autoincrement())
+  hospitalId  Int
+  nombre      String
+  duracionMin Int      @default(30)
+  precio      Decimal  @db.Decimal(10, 2)
+  hospital    Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  citas       Cita[]
+
+  @@unique([hospitalId, nombre])
+  @@map("tipos_servicio")
+}
+
 model HorarioBase {
   id       Int    @id @default(autoincrement())
   medico   Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
   medicoId Int
-  hora     String // formato "HH:mm"
+  hora     String
 
   @@unique([medicoId, hora])
   @@map("horarios_base")
 }
 
-model Cita {
-  id         Int        @id @default(autoincrement())
-  paciente   Usuario    @relation(fields: [pacienteId], references: [id])
-  pacienteId Int
-  medico     Medico     @relation(fields: [medicoId], references: [id])
+model HorarioDisponibilidad {
+  id         Int    @id @default(autoincrement())
   medicoId   Int
-  fecha      String // formato "YYYY-MM-DD" (se mantiene como string para no alterar el contrato del frontend)
-  hora       String // formato "HH:mm"
-  estado     EstadoCita @default(confirmada)
-  creadaEn   DateTime   @default(now())
+  diaSemana  Int
+  horaInicio String
+  horaFin    String
+  medico     Medico @relation(fields: [medicoId], references: [id], onDelete: Cascade)
 
-  // La migracion agrega un indice unico parcial para impedir reservas simultaneas
-  // del mismo horario activo; Prisma no representa indices parciales en el schema.
+  @@index([medicoId, diaSemana])
+  @@map("horarios_disponibilidad")
+}
+
+model Cita {
+  id         Int          @id @default(autoincrement())
+  paciente   Usuario      @relation(fields: [pacienteId], references: [id])
+  pacienteId Int
+  medico     Medico       @relation(fields: [medicoId], references: [id])
+  medicoId   Int
+  hospital   Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  hospitalId Int
+  servicio   TipoServicio @relation(fields: [servicioId], references: [id], onDelete: Restrict)
+  servicioId Int
+  fecha      String
+  hora       String
+  fechaHora  DateTime
+  estado     EstadoCita   @default(CONFIRMADA)
+  creadaEn   DateTime     @default(now())
+
+  // The partial unique index in the migration permits rebooking cancelled slots.
   @@index([medicoId, fecha])
   @@index([pacienteId])
+  @@index([hospitalId, fecha])
   @@map("citas")
 }

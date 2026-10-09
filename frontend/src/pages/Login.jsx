@@ -4,8 +4,8 @@ import { api } from "../api/client.js";
 import { rutaSegunRol } from "../api/session.js";
 
 export default function Login() {
-  const [correo, setCorreo] = useState("paciente@demo.com");
-  const [password, setPassword] = useState("1234");
+  const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
@@ -34,22 +34,16 @@ export default function Login() {
       <h1>CLISENSA</h1>
       <p className="subtitle">Sistema de Gestion de Citas Medicas</p>
       <form onSubmit={onSubmit}>
-        <label>Correo electronico</label>
-        <input value={correo} onChange={(e) => setCorreo(e.target.value)} type="email" required />
-        <label>Contrasena</label>
-        <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
+        <label htmlFor="login-correo">Correo electronico</label>
+        <input id="login-correo" value={correo} onChange={(e) => setCorreo(e.target.value)} type="email" autoComplete="username" required />
+        <label htmlFor="login-password">Contrasena</label>
+        <input id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required />
         <button type="submit" className="block" disabled={cargando}>
           {cargando ? "Ingresando..." : "INGRESAR"}
         </button>
       </form>
       {error && <p className="error">{error}</p>}
 
-      <div style={{ marginTop: 20, fontSize: 12, color: "#5C6B73", lineHeight: 1.6 }}>
-        <strong>Cuentas de prueba:</strong><br />
-        Paciente: paciente@demo.com / 1234<br />
-        Medico: medico@demo.com / 1234<br />
-        Administrativo: admin@demo.com / 1234
-      </div>
       <p style={{ marginTop: 16, fontSize: 13 }}>
         <Link to="/registro">¿Es nuevo paciente? Crear cuenta</Link>
       </p>

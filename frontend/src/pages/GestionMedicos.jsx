@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import NavBar from "../components/NavBar.jsx";
 import { api } from "../api/client.js";
+import { getUsuario } from "../api/session.js";
 
 const ESPECIALIDADES = [
   { valor: "Medicina General", etiqueta: "Medicina General" },
@@ -9,6 +10,8 @@ const ESPECIALIDADES = [
 ];
 
 export default function GestionMedicos() {
+  const usuario = getUsuario();
+  const hospitalId = usuario?.hospitalId;
   const [medicos, setMedicos] = useState([]);
   const [nombre, setNombre] = useState("");
   const [especialidad, setEspecialidad] = useState("Medicina General");
@@ -21,11 +24,11 @@ export default function GestionMedicos() {
     setError("");
     setCargando(true);
     api
-      .medicos()
+      .medicos(null, hospitalId)
       .then(setMedicos)
       .catch((e) => setError(e.message))
       .finally(() => setCargando(false));
-  }, []);
+  }, [hospitalId]);
 
   useEffect(() => {
     cargarMedicos();
