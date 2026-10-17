@@ -1,12 +1,15 @@
 * {
   box-sizing: border-box;
-  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
 }
 body {
   margin: 0;
   font-family: "Segoe UI", Helvetica, Arial, sans-serif;
   background: #F8FAFC;
   color: #22303C;
+  cursor: default;
 }
 a { color: inherit; cursor: pointer; }
 
@@ -25,7 +28,13 @@ a { color: inherit; cursor: pointer; }
   margin: 24px auto;
   padding: 0 32px 48px;
 }
-h1, h2, h3 { color: #1E3A8A; }
+h1, h2, h3, h4, h5, h6 {
+  color: #1E3A8A;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
 p.subtitle { color: #5C6B73; margin-top: -8px; }
 
 /* ---------- Formularios ---------- */
@@ -39,7 +48,18 @@ input, select, textarea {
   background: rgba(239, 246, 255, 0.4);
   font-size: 14px;
 }
-input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea { cursor: text; }
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  caret-color: auto;
+}
+[contenteditable="true"], [contenteditable="true"] * {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  caret-color: auto;
+}
 input[type="file"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"] { cursor: pointer; }
 select { cursor: pointer; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }

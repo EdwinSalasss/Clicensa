@@ -4,64 +4,103 @@ Sistema de gestión de citas médicas con React, Express, Prisma y PostgreSQL.
 
 ## Requisitos
 
-- Git
-- Node.js 20 o superior
-- Docker Desktop
-- WSL 2 en Windows. Si no está instalado, abre PowerShell como administrador y
-  ejecuta `wsl --install`; después reinicia Windows si se solicita.
-
-PostgreSQL se ejecuta en Docker. No es necesario instalar PostgreSQL
-directamente en Windows.
+- Git, para clonar el repositorio.
+- Node.js 20 o superior y npm.
+- Docker Engine y Docker Compose (disponible como `docker compose`), para
+  ejecutar PostgreSQL. En Windows puedes usar Docker Desktop; en macOS y Linux,
+  Docker Desktop o Docker Engine con Compose.
 
 ## Instalación inicial
 
-Abre Docker Desktop, espera a que termine de iniciar y ejecuta desde la raíz
-del proyecto:
+Los pasos siguientes sirven para Windows, macOS y Linux. Ejecuta los comandos
+desde una terminal. Si tienes acceso al repositorio, clónalo así:
 
-```powershell
-cd C:\Users\HP\Downloads\clisensa
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup-windows.ps1
+```sh
+git clone https://github.com/EdwinSalasss/Clicensa.git
+cd Clicensa
 ```
 
-El script instala las dependencias, crea `backend\.env`, inicia PostgreSQL,
-ejecuta las migraciones de Prisma y carga los datos de prueba. Solo necesitas
-ejecutarlo la primera vez o después de clonar el proyecto en otro equipo.
-Después de aplicar una migración que cambia los roles, cierra sesión y vuelve a
-iniciarla para renovar el token JWT con el hospital asociado.
+Si ya tienes una copia local, omite el `git clone` y entra en la carpeta raíz
+del proyecto.
 
-## Flujo diario
-
-Después de completar la instalación inicial:
-
-1. Haz doble clic en `iniciar.bat`. Si Docker Desktop está cerrado, el script
-   intentará iniciarlo y esperará a que el motor esté listo.
-2. Abre http://localhost:5173.
-3. Cuando termines, cierra las ventanas del backend y frontend.
-4. Haz doble clic en `detener.bat` para detener PostgreSQL sin borrar datos y
-   cerrar Docker Desktop y WSL 2.
-
-## Iniciar todo
-
-Después de la instalación inicial, puedes iniciar la aplicación de cualquiera
-de estas formas:
-
-### Con doble clic
-
-Abre la carpeta `C:\Users\HP\Downloads\clisensa` en el Explorador de archivos
-y haz doble clic en [`iniciar.bat`](./iniciar.bat). El archivo abre dos
-ventanas de PowerShell: una para el backend y otra para el frontend. Déjalas
-abiertas mientras uses el sistema.
-
-### Desde PowerShell
+Crea la configuración local del backend copiando el archivo de ejemplo.
+En PowerShell:
 
 ```powershell
-cd C:\Users\HP\Downloads\clisensa
-.\scripts\start-windows.ps1
+Copy-Item backend/.env.example backend/.env
 ```
 
-El script inicia Docker Desktop si está cerrado, inicia PostgreSQL, espera a
-que esté saludable, aplica las migraciones y abre backend y frontend.
+En macOS o Linux:
+
+```sh
+cp backend/.env.example backend/.env
+```
+
+Abre `backend/.env` y revisa la configuración:
+
+- `DATABASE_URL` debe conectar con la base PostgreSQL que inicia Docker Compose.
+  El valor de ejemplo coincide con las credenciales de desarrollo de
+  `docker-compose.yml`.
+- Cambia `JWT_SECRET` por una cadena aleatoria de al menos 32 caracteres.
+- `ADMIN_SISTEMA_EMAIL` y `ADMIN_SISTEMA_PASSWORD` definen la cuenta inicial
+  administradora. La contraseña de ejemplo es solo para desarrollo.
+- `RESEND_API_KEY` y `EMAIL_FROM` son opcionales para iniciar la aplicación,
+  pero se requieren para enviar correos de invitación y notificación.
+
+La URL de API del frontend ya apunta por defecto a `http://localhost:4000/api`.
+Si necesitas cambiarla, copia `frontend/.env.example` a `frontend/.env` y
+actualiza `VITE_API_URL`.
+
+Inicia PostgreSQL desde la raíz del repositorio y comprueba que el contenedor
+esté saludable:
+
+```sh
+docker compose up -d db
+docker compose ps
+```
+
+En una terminal instala las dependencias del backend, aplica las migraciones y
+carga los datos de demostración:
+
+```sh
+cd backend
+npm ci
+npx prisma migrate deploy
+npm run db:seed
+```
+
+`npm ci` instala las dependencias fijadas en el archivo de bloqueo y genera el
+cliente de Prisma. `prisma migrate deploy` prepara el esquema de la base de
+datos; el seed crea cuentas y datos de demostración. Ejecuta el seed solo en
+entornos de desarrollo o prueba.
+
+Al terminar la instalación, inicia el backend desde la terminal que ya está
+ubicada en `backend`:
+
+```sh
+npm run dev
+```
+
+Abre una segunda terminal en la raíz del proyecto e inicia el frontend:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Abre http://localhost:5173. Mantén abiertas las terminales del backend y del
+frontend mientras uses la aplicación. Cuando termines, detén esos procesos con
+`Ctrl+C`. Para detener PostgreSQL sin borrar sus datos, desde la raíz ejecuta
+`docker compose stop db`.
+
+En los siguientes inicios, no hace falta repetir `npm ci`, las migraciones ni
+la semilla: inicia PostgreSQL con `docker compose up -d db` y ejecuta
+`npm run dev` desde `backend` y `frontend` en dos terminales distintas.
+
+Los archivos `iniciar.bat`, `detener.bat` y `scripts/*-windows.ps1` son
+accesos directos opcionales exclusivos para Windows; no son necesarios para
+seguir estos pasos.
 
 ## URLs
 
@@ -185,7 +224,7 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
   los horarios cancelados y vencidos quedan libres.
 
 Las invitaciones y notificaciones de cita usan Resend. Para enviar invitaciones
-configura `RESEND_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` en `backend\.env`. Si
+configura `RESEND_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` en `backend/.env`. Si
 el correo de invitación falla, se informa el error y no se conserva la cuenta
 invitada. Una cita sí se conserva si el correo de notificación falla; la API
 indica el resultado de la notificación en la respuesta.
@@ -194,56 +233,6 @@ Se mantienen React, Vite, Express, Prisma y PostgreSQL y la hoja de estilos CSS
 existente: no se añade TailwindCSS ni se cambia el stack. La especificación
 actualizada está en `backend/openapi.yaml` y se sirve en `/api/docs`.
 
-## Detener PostgreSQL
-
-Cierra las ventanas del backend y frontend. Para detener PostgreSQL sin borrar
-sus datos:
-
-```powershell
-cd C:\Users\HP\Downloads\clisensa
-docker compose stop db
-```
-
-Para iniciar nuevamente, usa `iniciar.bat`.
-
-También puedes hacer doble clic en [`detener.bat`](./detener.bat) desde la
-carpeta del proyecto. Detiene PostgreSQL sin borrar sus datos, cierra Docker
-Desktop y ejecuta `wsl --shutdown`.
-
-## Apagado completo en Windows
-
-`detener.bat` realiza automáticamente el apagado completo: detiene PostgreSQL,
-cierra Docker Desktop y ejecuta `wsl --shutdown` para liberar la memoria de
-WSL 2. Si prefieres hacerlo manualmente:
-
-1. Cierra las ventanas del backend y frontend.
-2. Haz doble clic en `detener.bat`.
-3. Cierra Docker Desktop desde su icono en la bandeja del sistema:
-   **clic derecho → Quit Docker Desktop**.
-4. Abre PowerShell y ejecuta:
-
-```powershell
-wsl --shutdown
-```
-
-Puedes comprobar que no haya distribuciones WSL activas con:
-
-```powershell
-wsl --list --running
-```
-
-Si aparece `Ubuntu`, puedes detenerla específicamente y repetir el apagado:
-
-```powershell
-wsl --terminate Ubuntu
-wsl --shutdown
-```
-
-`vmmemWSL` puede tardar unos segundos en desaparecer del Administrador de
-tareas. No lo finalices manualmente; `wsl --shutdown` es la forma segura de
-liberar la memoria. Para volver a trabajar, abre Docker Desktop y después
-ejecuta `iniciar.bat`.
-
 ## Estructura principal
 
 ```text
@@ -251,31 +240,26 @@ backend/              API Express y Prisma
 backend/prisma/       Esquema, migraciones y seed
 frontend/             Aplicación React
 docker-compose.yml    PostgreSQL local
-scripts/              Automatización para Windows
-iniciar.bat           Lanzador de toda la aplicación
-detener.bat           Detiene PostgreSQL sin borrar datos
+scripts/              Automatización opcional para Windows
 ```
 
 ## Solución rápida de problemas
 
-- **Docker no responde:** abre Docker Desktop y espera a que termine de
-  iniciar.
-- **Puerto ocupado:** libera los puertos `4000`, `5173` o `5432`.
-- **`docker compose` no encuentra configuración:** ejecuta el comando desde
-  `C:\Users\HP\Downloads\clisensa`.
-- **`iniciar.bat` no funciona desde Ubuntu/WSL:** ejecútalo con doble clic en
-  Windows o desde PowerShell; es un archivo de Windows.
+- **Docker no responde:** verifica que Docker Engine esté iniciado y que
+  `docker compose version` funcione en la terminal.
+- **La base de datos no está disponible:** ejecuta `docker compose ps` desde la
+  raíz del proyecto y confirma que PostgreSQL esté saludable. Comprueba que
+  `DATABASE_URL` en `backend/.env` coincida con el puerto, nombre de base y
+  credenciales configurados en `docker-compose.yml`.
+- **Puerto ocupado:** libera los puertos `4000`, `5173` o `5432`, o modifica
+  los valores de configuración correspondientes.
+- **Falla una migración:** confirma que PostgreSQL esté activo y que
+  `DATABASE_URL` apunte a la base correcta; después vuelve a ejecutar
+  `npx prisma migrate deploy` desde `backend`.
+- **El frontend no alcanza la API:** comprueba que el backend esté activo y
+  que `VITE_API_URL` apunte a `http://localhost:4000/api`.
 
-## Rutas y colaboración
-
-Los scripts no dependen de una ruta fija. Usan la carpeta donde está el propio
-archivo, por lo que funcionan aunque cada participante clone el repositorio en
-una ubicación diferente.
-
-Los archivos locales `backend\.env`, `.env`, `node_modules`, `dist` y los datos
-de PostgreSQL no se suben al repositorio. Cada participante debe instalar sus
-propias dependencias y tener Docker Desktop iniciado.
-
-`npm run db:seed` sincroniza las cuentas y horarios de demostración sin borrar
-citas existentes. Las reservas activas tienen además una restricción única en
-PostgreSQL para impedir que solicitudes simultáneas ocupen el mismo horario.
+Los archivos locales de configuración (`backend/.env`, `frontend/.env`), las
+dependencias (`node_modules`), los artefactos (`dist`) y el volumen de datos
+PostgreSQL no se incluyen al clonar el repositorio. Cada persona debe preparar
+su configuración y su propia base de desarrollo.
