@@ -48,7 +48,8 @@ export default function Login() {
         <strong>Cuentas de prueba:</strong><br />
         Paciente: paciente@demo.com / 1234<br />
         Medico: medico@demo.com / 1234<br />
-        Administrativo: admin@demo.com / 1234
+        Administrativo: admin@demo.com / 1234<br />
+        Administrador del sistema: sistema@demo.com / 1234 (solo desarrollo)
       </div>
     </div>
   );

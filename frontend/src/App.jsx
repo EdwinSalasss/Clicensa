@@ -5,6 +5,8 @@ import AgendarCita from "./pages/AgendarCita.jsx";
 import HistorialCitas from "./pages/HistorialCitas.jsx";
 import MedicoPanel from "./pages/MedicoPanel.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
+import SystemAdminPanel from "./pages/SystemAdminPanel.jsx";
+import MedicoActivacion from "./pages/MedicoActivacion.jsx";
 import { estaAutenticado, getUsuario } from "./api/session.js";
 
 function RutaPrivada({ rolesPermitidos, children }) {
@@ -21,11 +23,12 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/medico/activar" element={<MedicoActivacion />} />
 
       <Route
         path="/paciente/agendar"
         element={
-          <RutaPrivada rolesPermitidos={["paciente"]}>
+          <RutaPrivada rolesPermitidos={["PACIENTE", "paciente"]}>
             <AgendarCita />
           </RutaPrivada>
         }
@@ -33,7 +36,7 @@ export default function App() {
       <Route
         path="/paciente/historial"
         element={
-          <RutaPrivada rolesPermitidos={["paciente"]}>
+          <RutaPrivada rolesPermitidos={["PACIENTE", "paciente"]}>
             <HistorialCitas />
           </RutaPrivada>
         }
@@ -42,7 +45,7 @@ export default function App() {
       <Route
         path="/medico"
         element={
-          <RutaPrivada rolesPermitidos={["medico"]}>
+          <RutaPrivada rolesPermitidos={["MEDICO", "medico"]}>
             <MedicoPanel />
           </RutaPrivada>
         }
@@ -51,8 +54,16 @@ export default function App() {
       <Route
         path="/admin"
         element={
-          <RutaPrivada rolesPermitidos={["administrativo"]}>
+          <RutaPrivada rolesPermitidos={["PERSONAL_ADMINISTRATIVO", "administrativo"]}>
             <AdminPanel />
+          </RutaPrivada>
+        }
+      />
+      <Route
+        path="/sistema"
+        element={
+          <RutaPrivada rolesPermitidos={["ADMIN_SISTEMA"]}>
+            <SystemAdminPanel />
           </RutaPrivada>
         }
       />

@@ -32,7 +32,7 @@ export default function HistorialCitas() {
       <NavBar />
       <div className="panel">
         <h2>Historial de Citas</h2>
-        <p className="subtitle">Consulta tus citas agendadas, confirmadas y canceladas.</p>
+        <p className="subtitle">Consulta tus citas pendientes, confirmadas, atendidas y canceladas.</p>
 
         {error && <p className="error">{error}</p>}
         {cargando ? (
@@ -45,6 +45,8 @@ export default function HistorialCitas() {
               <tr>
                 <th>Fecha</th>
                 <th>Hora</th>
+                <th>Hospital</th>
+                <th>Servicio</th>
                 <th>Medico</th>
                 <th>Estado</th>
                 <th></th>
@@ -55,10 +57,12 @@ export default function HistorialCitas() {
                 <tr key={c.id}>
                   <td>{c.fecha}</td>
                   <td>{c.hora}</td>
+                  <td>{c.hospitalNombre || "—"}</td>
+                  <td>{c.servicioNombre || "Consulta"}</td>
                   <td>{c.medicoNombre}</td>
-                  <td><span className={`badge ${c.estado}`}>{c.estado}</span></td>
+                  <td><span className={`badge ${c.estado.toLowerCase()}`}>{c.estado}</span></td>
                   <td>
-                    {c.estado === "confirmada" && (
+                    {["PENDIENTE", "CONFIRMADA", "pendiente", "confirmada"].includes(c.estado) && (
                       <button className="danger" onClick={() => cancelar(c.id)}>
                         Cancelar
                       </button>

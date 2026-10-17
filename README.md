@@ -70,9 +70,44 @@ aplica las migraciones y abre backend y frontend automáticamente.
 
 | Rol | Correo | Contraseña |
 |---|---|---|
+| Administrador del sistema | `sistema@demo.com` | `1234` |
 | Paciente | `paciente@demo.com` | `1234` |
 | Médico | `medico@demo.com` | `1234` |
 | Administrativo | `admin@demo.com` | `1234` |
+
+La cuenta `ADMIN_SISTEMA` y su contraseña se pueden cambiar mediante
+`ADMIN_SISTEMA_EMAIL` y `ADMIN_SISTEMA_PASSWORD` en `backend\.env`. El valor
+`1234` es exclusivamente para desarrollo local: define una contraseña larga y
+única antes de desplegar y antes de ejecutar el seed por primera vez.
+
+## Funcionalidad multi-hospital
+
+- El administrador del sistema (`sistema@demo.com`) crea hospitales y asigna
+  personal administrativo desde `/sistema`.
+- El personal administrativo del hospital (`admin@demo.com`) mantiene el
+  catálogo de servicios, invita médicos y revisa/gestiona las citas de su sede
+  desde `/admin`.
+- El médico administra su perfil y disponibilidad semanal, revisa su agenda y
+  puede asignar una cita buscando al paciente por correo o cédula.
+- El paciente selecciona hospital, servicio, médico y horario en el flujo de
+  reserva de tres pasos. Las citas nuevas se crean como `PENDIENTE`.
+- El esquema y las rutas completas están descritos en
+  [`backend/openapi.yaml`](./backend/openapi.yaml). La migración nueva es
+  incremental y conserva los datos anteriores; el seed ya no elimina registros.
+
+### Invitaciones y notificaciones por correo
+
+El envío transaccional usa Resend. Para invitar médicos, configura
+`RESEND_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` en `backend\.env`. Si el proveedor
+no está configurado o rechaza el envío, la invitación no se guarda y la API
+devuelve un error explícito. Las notificaciones de citas informan en la
+respuesta si el correo pudo enviarse; el registro de la cita se conserva aunque
+el proveedor esté temporalmente indisponible.
+
+La interfaz conserva React/Vite y la hoja de estilos existente del proyecto; no
+se añade TailwindCSS ni se cambia la tecnología instalada. Los colores,
+controles, estados y jerarquía visual siguen la paleta indicada para la nueva
+experiencia.
 
 ## Detener PostgreSQL
 

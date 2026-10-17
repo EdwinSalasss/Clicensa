@@ -9,13 +9,17 @@ const router = Router();
 router.post("/login", async (req, res) => {
   try {
     const { correo, password } = req.body || {};
-    if (!correo || !password) {
+    if (typeof correo !== "string" || !correo.trim() || typeof password !== "string" || !password) {
       return res.status(400).json({ error: "correo y password son requeridos" });
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { correo } });
+    const usuario = await prisma.usuario.findUnique({ where: { correo: correo.trim().toLowerCase() } });
     if (!usuario) {
       return res.status(401).json({ error: "Credenciales invalidas" });
+    }
+
+    if (usuario.rol === "MEDICO" && !usuario.activadoEn) {
+      return res.status(403).json({ error: "Activa tu cuenta desde el enlace enviado por correo" });
     }
 
     const passwordOk = await bcrypt.compare(password, usuario.password);
@@ -31,6 +35,8 @@ router.post("/login", async (req, res) => {
         nombre: usuario.nombre,
         rol: usuario.rol,
         medicoId: usuario.medicoId || null,
+        hospitalId: usuario.hospitalId || null,
+        cedula: usuario.cedula || null,
       },
     });
   } catch (err) {

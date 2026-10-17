@@ -1,6 +1,6 @@
 {
   "name": "clisensa-backend",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "CLISENSA - API REST del Sistema de Gestion de Citas Medicas (Fase 2 - PostgreSQL)",
   "main": "src/index.js",
   "type": "module",

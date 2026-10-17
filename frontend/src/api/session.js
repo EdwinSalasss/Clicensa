@@ -17,8 +17,9 @@ export function cerrarSesion() {
 
 // A que panel debe ir cada rol despues de iniciar sesion
 export function rutaSegunRol(rol) {
-  if (rol === "paciente") return "/paciente/agendar";
-  if (rol === "medico") return "/medico";
-  if (rol === "administrativo") return "/admin";
+  if (rol === "PACIENTE" || rol === "paciente") return "/paciente/agendar";
+  if (rol === "MEDICO" || rol === "medico") return "/medico";
+  if (rol === "PERSONAL_ADMINISTRATIVO" || rol === "administrativo") return "/admin";
+  if (rol === "ADMIN_SISTEMA") return "/sistema";
   return "/";
 }

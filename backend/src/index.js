@@ -6,6 +6,9 @@ import authRoutes from "./routes/auth.routes.js";
 import medicosRoutes from "./routes/medicos.routes.js";
 import horariosRoutes from "./routes/horarios.routes.js";
 import citasRoutes from "./routes/citas.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import hospitalRoutes from "./routes/hospital.routes.js";
+import hospitalesRoutes from "./routes/hospitales.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,10 +22,13 @@ app.use((req, _res, next) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", servicio: "CLISENSA API", version: "0.2.0" });
+  res.json({ status: "ok", servicio: "CLISENSA API", version: "0.4.0" });
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/hospital", hospitalRoutes);
+app.use("/api/hospitales", hospitalesRoutes);
 app.use("/api/medicos", medicosRoutes);
 app.use("/api/horarios", horariosRoutes);
 app.use("/api/citas", citasRoutes);

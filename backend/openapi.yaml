@@ -2,12 +2,15 @@ openapi: 3.0.3
 info:
   title: CLISENSA API
   description: API REST del Sistema de Gestión de Citas Médicas (CLISENSA)
-  version: 0.3.0
+  version: 0.4.0
 servers:
   - url: http://localhost:4000/api
     description: Desarrollo local
 tags:
   - name: Auth
+  - name: Hospitales
+  - name: Administración
+  - name: Servicios
   - name: Medicos
   - name: Horarios
   - name: Citas
@@ -41,10 +44,88 @@ paths:
                     properties:
                       id: { type: integer }
                       nombre: { type: string }
-                      rol: { type: string, enum: [paciente, medico, administrativo] }
+                      rol: { type: string, enum: [ADMIN_SISTEMA, PERSONAL_ADMINISTRATIVO, MEDICO, PACIENTE] }
                       medicoId: { type: integer, nullable: true }
-        "401":
-          description: Credenciales inválidas
+                      hospitalId: { type: integer, nullable: true }
+        "401": { description: Credenciales inválidas }
+
+  /hospitales:
+    get:
+      tags: [Hospitales]
+      summary: Listar hospitales disponibles para agendar
+      responses:
+        "200": { description: Lista de hospitales }
+
+  /admin/hospitales:
+    post:
+      tags: [Administración]
+      summary: Crear hospital (ADMIN_SISTEMA)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, direccion, telefono]
+              properties:
+                nombre: { type: string }
+                direccion: { type: string }
+                telefono: { type: string }
+      responses:
+        "201": { description: Hospital creado }
+        "403": { description: Rol no autorizado }
+
+  /admin/personal:
+    post:
+      tags: [Administración]
+      summary: Crear personal administrativo para un hospital (ADMIN_SISTEMA)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hospitalId, nombre, correo, password]
+              properties:
+                hospitalId: { type: integer }
+                nombre: { type: string }
+                correo: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        "201": { description: Cuenta administrativa creada }
+        "404": { description: Hospital no encontrado }
+
+  /hospital/servicios:
+    get:
+      tags: [Servicios]
+      summary: Listar servicios de un hospital
+      parameters:
+        - in: query
+          name: hospitalId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Catálogo de servicios }
+    post:
+      tags: [Servicios]
+      summary: Crear servicio en el hospital del personal autenticado
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, duracionMin, precio]
+              properties:
+                nombre: { type: string }
+                duracionMin: { type: integer, minimum: 5 }
+                precio: { type: number, minimum: 0 }
+      responses:
+        "201": { description: Servicio creado }
+        "403": { description: Rol no autorizado }
 
   /medicos:
     get:
@@ -54,6 +135,9 @@ paths:
         - in: query
           name: especialidad
           schema: { type: string }
+        - in: query
+          name: hospitalId
+          schema: { type: integer }
       responses:
         "200":
           description: Lista de médicos
@@ -68,6 +152,53 @@ paths:
                     nombre: { type: string }
                     especialidad: { type: string }
 
+  /medicos/invitar:
+    post:
+      tags: [Medicos]
+      summary: Invitar médico y enviar enlace de activación (PERSONAL_ADMINISTRATIVO)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [licenciaMedica, correo, especialidad]
+              properties:
+                licenciaMedica: { type: string }
+                correo: { type: string, format: email }
+                especialidad: { type: string }
+      responses:
+        "201": { description: Invitación enviada }
+        "409": { description: El correo o la licencia ya existe }
+        "503": { description: Configuración de correo incompleta }
+
+  /medicos/perfil:
+    get:
+      tags: [Medicos]
+      summary: Consultar perfil del médico autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Perfil médico }
+    put:
+      tags: [Medicos]
+      summary: Completar perfil/activar cuenta o actualizar perfil médico
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombreCompleto: { type: string }
+                biografia: { type: string }
+                fotoUrl: { type: string, format: uri, nullable: true }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200": { description: Perfil actualizado }
+        "401": { description: Token de activación inválido o vencido }
+
   /horarios/disponibles:
     get:
       tags: [Horarios]
@@ -81,6 +212,10 @@ paths:
           name: fecha
           required: true
           schema: { type: string, format: date, example: "2026-09-16" }
+        - in: query
+          name: servicioId
+          required: false
+          schema: { type: integer }
       responses:
         "200":
           description: Horarios disponibles
@@ -95,10 +230,41 @@ paths:
                     type: array
                     items: { type: string, example: "09:00" }
 
+  /horarios:
+    get:
+      tags: [Horarios]
+      summary: Consultar disponibilidad semanal del médico autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Bloques semanales configurados }
+    post:
+      tags: [Horarios]
+      summary: Reemplazar bloques de disponibilidad semanal del médico
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [disponibilidad]
+              properties:
+                disponibilidad:
+                  type: array
+                  items:
+                    type: object
+                    required: [diaSemana, horaInicio, horaFin]
+                    properties:
+                      diaSemana: { type: integer, minimum: 0, maximum: 6 }
+                      horaInicio: { type: string, example: "08:00" }
+                      horaFin: { type: string, example: "12:00" }
+      responses:
+        "200": { description: Disponibilidad guardada }
+
   /citas:
     post:
       tags: [Citas]
-      summary: Agendar una cita (rol paciente)
+      summary: Paciente reserva o médico asigna una cita directamente
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -111,8 +277,13 @@ paths:
                 medicoId: { type: integer }
                 fecha: { type: string, format: date }
                 hora: { type: string, example: "09:00" }
+                hospitalId: { type: integer }
+                servicioId: { type: integer }
+                pacienteId: { type: integer, description: Requerido por médico, o puede buscar por correo/cédula }
+                correo: { type: string, format: email }
+                cedula: { type: string }
       responses:
-        "201": { description: Cita creada }
+        "201": { description: Cita creada con estado PENDIENTE }
         "400": { description: Datos inválidos u horario inexistente }
         "409": { description: Horario ya reservado }
     get:
@@ -137,6 +308,29 @@ paths:
         "403": { description: No autorizado }
         "404": { description: Cita no encontrada }
 
+  /citas/{id}/estado:
+    put:
+      tags: [Citas]
+      summary: Actualizar estado de cita (médico de la cita, personal del hospital o ADMIN_SISTEMA)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado: { type: string, enum: [CONFIRMADA, CANCELADA, ATENDIDA] }
+      responses:
+        "200": { description: Estado actualizado }
+        "403": { description: No autorizado para esta cita }
+
   /citas/medico:
     get:
       tags: [Citas]
@@ -153,7 +347,7 @@ paths:
   /citas/todas:
     get:
       tags: [Citas]
-      summary: Vista global de citas (rol administrativo)
+      summary: Citas del hospital (personal administrativo) o de la red (ADMIN_SISTEMA)
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
@@ -161,7 +355,7 @@ paths:
           required: false
           schema: { type: string, format: date }
       responses:
-        "200": { description: Todas las citas del centro médico }
+        "200": { description: Citas visibles para el rol autenticado }
 
 components:
   securitySchemes:
