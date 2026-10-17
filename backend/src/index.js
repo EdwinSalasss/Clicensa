@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import swaggerUi from "swagger-ui-express";
 import yaml from "js-yaml";
 import { prisma } from "./db/prisma.js";
+import { marcarCitasVencidas } from "./services/appointmentStatus.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import medicosRoutes from "./routes/medicos.routes.js";
@@ -74,6 +75,23 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: "Error interno del servidor" });
 });
+
+let vencimientoEnCurso = false;
+async function actualizarCitasVencidas() {
+  if (vencimientoEnCurso) return;
+  vencimientoEnCurso = true;
+  try {
+    await marcarCitasVencidas();
+  } catch (err) {
+    console.error("No se pudieron actualizar las citas vencidas:", err);
+  } finally {
+    vencimientoEnCurso = false;
+  }
+}
+
+actualizarCitasVencidas();
+const vencimientoTimer = setInterval(actualizarCitasVencidas, 60_000);
+vencimientoTimer.unref();
 
 app.listen(PORT, () => {
   console.log(`CLISENSA API escuchando en http://localhost:${PORT}`);

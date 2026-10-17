@@ -200,6 +200,18 @@ paths:
         - in: query
           name: hospitalId
           schema: { type: integer }
+        - in: query
+          name: soloActivos
+          schema: { type: boolean }
+        - in: query
+          name: soloDisponibles
+          schema: { type: boolean }
+        - in: query
+          name: servicioId
+          schema: { type: integer }
+        - in: query
+          name: fecha
+          schema: { type: string, format: date }
       responses:
         "200":
           description: Lista de médicos
@@ -371,6 +383,47 @@ paths:
                     items: { type: string, example: "09:00" }
         "400": { description: Parámetros requeridos faltantes o inválidos }
 
+  /horarios/calendario:
+    get:
+      tags: [Horarios]
+      summary: Consultar horas libres por día para un rango de hasta 31 días
+      parameters:
+        - in: query
+          name: medicoId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: servicioId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: desde
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: hasta
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Calendario con las horas libres para cada fecha
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dias:
+                    type: array
+                    items:
+                      type: object
+                      required: [fecha, disponibles]
+                      properties:
+                        fecha: { type: string, format: date }
+                        disponibles:
+                          type: array
+                          items: { type: string, example: "09:00" }
+        "400": { description: Rango de fechas o identificadores inválidos }
+
   /horarios:
     get:
       tags: [Horarios]
@@ -478,7 +531,7 @@ paths:
   /citas/{id}/estado:
     put:
       tags: [Citas]
-      summary: Actualizar estado de cita
+      summary: El médico actualiza el estado; personal del hospital solo puede cancelar
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -501,7 +554,7 @@ paths:
   /citas/{id}/reprogramar:
     put:
       tags: [Citas]
-      summary: Reprogramar cita propia (rol paciente)
+      summary: Solicitar reprogramación de una cita propia (rol paciente)
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -520,7 +573,7 @@ paths:
                 hora: { type: string, example: "09:30" }
       responses:
         "200":
-          description: Cita reprogramada
+          description: Solicitud enviada; la cita conserva su horario hasta la decisión médica
           content:
             application/json:
               schema:
@@ -530,6 +583,39 @@ paths:
         "403": { description: Cita ajena o rol incorrecto }
         "404": { description: Cita no encontrada }
         "409": { description: Nuevo horario ya reservado }
+
+  /citas/{id}/reprogramacion/decision:
+    put:
+      tags: [Citas]
+      summary: Aprobar o rechazar la solicitud (solo el médico asignado)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aprobar]
+              properties:
+                aprobar: { type: boolean }
+      responses:
+        "200": { description: Solicitud resuelta y estado de la cita actualizado }
+        "403": { description: Solo el médico asignado puede resolver la solicitud }
+        "409": { description: La solicitud fue resuelta o el horario dejó de estar disponible }
+
+  /citas/solicitudes-reprogramacion:
+    get:
+      tags: [Citas]
+      summary: Listar solicitudes pendientes de la agenda del médico autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Solicitudes dirigidas al médico autenticado }
+        "403": { description: Se requiere rol médico }
 
   /citas/medico:
     get:
@@ -549,12 +635,12 @@ paths:
   /citas/proximas:
     get:
       tags: [Citas]
-      summary: Consultar las próximas ocho citas visibles para la cuenta autenticada
+      summary: Consultar próximas citas propias (solo pacientes y médicos)
       security: [{ bearerAuth: [] }]
       responses:
         "200": { description: Próximas citas activas }
         "401": { description: Falta autenticación }
-        "403": { description: La cuenta no tiene hospital o agenda asociada }
+        "403": { description: La cuenta no tiene agenda asociada o el rol no tiene notificaciones }
 
   /citas/todas:
     get:
@@ -632,5 +718,8 @@ components:
         fechaHora: { type: string, format: date-time }
         fecha: { type: string, format: date }
         hora: { type: string, example: "09:00" }
-        estado: { type: string, enum: [PENDIENTE, CONFIRMADA, CANCELADA, ATENDIDA] }
+        estado: { type: string, enum: [PENDIENTE, CONFIRMADA, CANCELADA, ATENDIDA, VENCIDA] }
+        fechaReprogramacion: { type: string, format: date, nullable: true }
+        horaReprogramacion: { type: string, example: "10:30", nullable: true }
+        estadoReprogramacion: { type: string, enum: [PENDIENTE, APROBADA, RECHAZADA], nullable: true }
         creadaEn: { type: string, format: date-time }

@@ -19,6 +19,7 @@ enum EstadoCita {
   CONFIRMADA @map("confirmada")
   CANCELADA  @map("cancelada")
   ATENDIDA   @map("atendida")
+  VENCIDA    @map("vencida")
 }
 
 model Hospital {
@@ -137,11 +138,17 @@ model Cita {
   hora       String
   fechaHora  DateTime
   estado     EstadoCita   @default(CONFIRMADA)
+  fechaReprogramacion   String?
+  horaReprogramacion    String?
+  estadoReprogramacion  String?
+  solicitadaReprogramacionEn DateTime?
+  resueltaReprogramacionEn  DateTime?
   creadaEn   DateTime     @default(now())
 
   // The partial unique index in the migration permits rebooking cancelled slots.
   @@index([medicoId, fecha])
   @@index([pacienteId])
   @@index([hospitalId, fecha])
+  @@index([medicoId, fechaReprogramacion, estadoReprogramacion])
   @@map("citas")
 }

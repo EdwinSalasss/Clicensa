@@ -41,10 +41,16 @@ export const api = {
     request("/hospital/servicios", { method: "POST", body: JSON.stringify(datos) }),
   invitarMedico: (datos) =>
     request("/medicos/invitar", { method: "POST", body: JSON.stringify(datos) }),
-  medicos: (especialidad, hospitalId) => {
+  medicos: (especialidad, hospitalId, filtros = {}) => {
     const params = new URLSearchParams();
     if (especialidad) params.set("especialidad", especialidad);
     if (hospitalId) params.set("hospitalId", hospitalId);
+    if (filtros.soloDisponibles) {
+      params.set("soloDisponibles", "true");
+      params.set("servicioId", filtros.servicioId);
+      params.set("fecha", filtros.fecha);
+    }
+    if (filtros.soloActivos) params.set("soloActivos", "true");
     return request(`/medicos${params.size ? `?${params}` : ""}`);
   },
 
@@ -52,6 +58,10 @@ export const api = {
     const params = new URLSearchParams({ medicoId, fecha });
     if (servicioId) params.set("servicioId", servicioId);
     return request(`/horarios/disponibles?${params}`);
+  },
+  horariosCalendario: (medicoId, servicioId, desde, hasta) => {
+    const params = new URLSearchParams({ medicoId, servicioId, desde, hasta });
+    return request(`/horarios/calendario?${params}`);
   },
   miDisponibilidad: () => request("/horarios"),
   guardarDisponibilidad: (disponibilidad) =>
@@ -76,6 +86,12 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ fecha, hora }),
     }),
+  resolverReprogramacion: (id, aprobar) =>
+    request(`/citas/${id}/reprogramacion/decision`, {
+      method: "PUT",
+      body: JSON.stringify({ aprobar }),
+    }),
+  solicitudesReprogramacion: () => request("/citas/solicitudes-reprogramacion"),
 
   // Medico
   agendaMedico: (fecha) => request(`/citas/medico?fecha=${fecha}`),

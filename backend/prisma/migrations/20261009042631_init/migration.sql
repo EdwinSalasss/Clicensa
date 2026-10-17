@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "citas_medico_fechaReprogramacion_estadoReprogramacion_idx" RENAME TO "citas_medicoId_fechaReprogramacion_estadoReprogramacion_idx";

@@ -13,6 +13,7 @@ export default function MedicoPanel() {
   const usuario = getUsuario();
   const [fecha, setFecha] = useState(hoy);
   const [agenda, setAgenda] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [disponibilidad, setDisponibilidad] = useState([]);
   const [bloque, setBloque] = useState({ diaSemana: "1", horaInicio: "08:00", horaFin: "12:00" });
@@ -32,7 +33,12 @@ export default function MedicoPanel() {
   async function cargarAgenda() {
     setCargando(true);
     try {
-      setAgenda(await api.agendaMedico(fecha));
+      const [citas, solicitudesPendientes] = await Promise.all([
+        api.agendaMedico(fecha),
+        api.solicitudesReprogramacion(),
+      ]);
+      setAgenda(citas);
+      setSolicitudes(solicitudesPendientes);
       setError("");
     } catch (err) {
       setError(err.message);
@@ -153,6 +159,20 @@ export default function MedicoPanel() {
     }
   }
 
+  async function resolverReprogramacion(id, aprobar) {
+    setError("");
+    setMensaje("");
+    try {
+      await api.resolverReprogramacion(id, aprobar);
+      setMensaje(aprobar
+        ? "La reprogramación fue aprobada y la cita quedó confirmada en el nuevo horario."
+        : "La solicitud fue rechazada; se conserva el horario original.");
+      await cargarAgenda();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const confirmadas = agenda.filter((cita) => cita.estado === "CONFIRMADA").length;
 
   return (
@@ -239,6 +259,32 @@ export default function MedicoPanel() {
           </form>
         </section>
         <section className="card appointments">
+          <h3>Solicitudes de reprogramación</h3>
+          {solicitudes.length === 0 ? (
+            <p className="muted">No tienes solicitudes pendientes.</p>
+          ) : (
+            <div className="table-scroll">
+              <table>
+                <thead><tr><th>Paciente</th><th>Cita original</th><th>Horario solicitado</th><th>Servicio</th><th>Acciones</th></tr></thead>
+                <tbody>
+                  {solicitudes.map((cita) => (
+                    <tr key={cita.id}>
+                      <td>{cita.pacienteNombre}<small className="table-secondary">{cita.pacienteCorreo}</small></td>
+                      <td>{cita.fecha} · {cita.hora}</td>
+                      <td>{cita.fechaReprogramacion} · {cita.horaReprogramacion}</td>
+                      <td>{cita.servicioNombre}</td>
+                      <td className="table-actions">
+                        <button className="small-button" onClick={() => resolverReprogramacion(cita.id, true)}>Aprobar</button>
+                        <button className="small-button danger" onClick={() => resolverReprogramacion(cita.id, false)}>Rechazar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+        <section className="card appointments">
           <h3>Agenda del {fecha}</h3>
           {cargando ? <p>Cargando...</p> : agenda.length === 0 ? <p>No hay citas registradas para esta fecha.</p> : (
             <div className="table-scroll">
@@ -252,7 +298,7 @@ export default function MedicoPanel() {
                       <td><span className={`badge ${cita.estado.toLowerCase()}`}>{cita.estado}</span></td>
                       <td className="table-actions">
                         {cita.estado === "PENDIENTE" && <button className="small-button secondary" onClick={() => cambiarEstado(cita.id, "CONFIRMADA")}>Confirmar</button>}
-                        {cita.estado === "CONFIRMADA" && <button className="small-button" onClick={() => cambiarEstado(cita.id, "ATENDIDA")}>Atendida</button>}
+                        {["CONFIRMADA", "VENCIDA"].includes(cita.estado) && <button className="small-button" onClick={() => cambiarEstado(cita.id, "ATENDIDA")}>Atendida</button>}
                         {["PENDIENTE", "CONFIRMADA"].includes(cita.estado) && <button className="small-button danger" onClick={() => cambiarEstado(cita.id, "CANCELADA")}>Cancelar</button>}
                       </td>
                     </tr>

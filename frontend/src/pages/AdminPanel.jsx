@@ -152,7 +152,6 @@ export default function AdminPanel() {
                       <td>{cita.servicioNombre}</td>
                       <td><span className={`badge ${cita.estado.toLowerCase()}`}>{cita.estado}</span></td>
                       <td className="table-actions">
-                        {cita.estado === "PENDIENTE" && <button className="small-button secondary" onClick={() => cambiarEstado(cita.id, "CONFIRMADA")}>Confirmar</button>}
                         {["PENDIENTE", "CONFIRMADA"].includes(cita.estado) && <button className="small-button danger" onClick={() => cambiarEstado(cita.id, "CANCELADA")}>Cancelar</button>}
                       </td>
                     </tr>

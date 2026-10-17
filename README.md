@@ -92,13 +92,16 @@ La colección de pruebas para importar en Postman está en
 | `POST` | `/api/horarios` | Médico; reemplaza disponibilidad semanal |
 | `DELETE` | `/api/medicos/:id/horarios/:horarioId` | Administrativo |
 | `GET` | `/api/horarios/disponibles` | Público |
+| `GET` | `/api/horarios/calendario` | Público; disponibilidad por día para un rango de hasta 31 días |
 | `POST` | `/api/citas` | Paciente o médico de la agenda |
 | `GET` | `/api/citas` | Paciente |
 | `PUT` | `/api/citas/:id/cancelar` | Paciente |
-| `PUT` | `/api/citas/:id/reprogramar` | Paciente |
-| `PUT` | `/api/citas/:id/estado` | Médico de la cita, personal del hospital o administrador del sistema |
+| `PUT` | `/api/citas/:id/reprogramar` | Paciente; crea una solicitud pendiente de aprobación |
+| `GET` | `/api/citas/solicitudes-reprogramacion` | Médico asignado |
+| `PUT` | `/api/citas/:id/reprogramacion/decision` | Médico asignado; aprobar o rechazar |
+| `PUT` | `/api/citas/:id/estado` | Médico asignado; personal del hospital puede cancelar citas de su sede |
 | `GET` | `/api/citas/medico` | Médico autenticado |
-| `GET` | `/api/citas/proximas` | Próximas citas visibles para la cuenta autenticada |
+| `GET` | `/api/citas/proximas` | Paciente o médico; solo muestra sus propias citas |
 | `GET` | `/api/citas/todas` | Personal del hospital o administrador del sistema |
 
 ## Cuentas de prueba
@@ -131,11 +134,34 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
 - El personal administrativo gestiona el catálogo de servicios, invita
   médicos y administra las citas de su hospital desde `/admin`. La gestión de
   médicos y horarios heredada continúa disponible en `/admin/medicos`.
-- El médico completa su perfil desde el enlace de invitación, actualiza su
+- El personal administrativo pertenece a un hospital y gestiona solo los
+  servicios, médicos y citas de esa sede. El médico completa su perfil y crea
+  su contraseña desde el enlace de invitación enviado por correo, actualiza su
   disponibilidad semanal, consulta su agenda y asigna citas buscando pacientes
   por correo o cédula.
 - El paciente selecciona hospital, servicio, médico y horario en un flujo de
-  tres pasos; puede continuar reprogramando sus citas desde el historial.
+  tres pasos. Solo se muestran médicos activos de la sede seleccionada; el
+  calendario consulta en bloque la disponibilidad del mes, resalta los días con
+  cupo y muestra botones grandes para elegir una hora libre. Los días agotados
+  no se pueden seleccionar.
+- Al solicitar una reprogramación, el mismo calendario consulta primero los
+  horarios libres del médico y servicio originales. El paciente elige un día
+  con cupo y una hora disponible mediante botones, sin escribir ni ajustar la
+  hora manualmente.
+- Las solicitudes de cita quedan pendientes hasta que el médico asignado las
+  confirme. Una solicitud de reprogramación no mueve ni libera la cita original:
+  el horario propuesto también queda reservado mientras espera la decisión del
+  mismo médico. Al aprobarla, se actualizan fecha y hora; al rechazarla, se
+  conserva la cita original. Pacientes y médicos reciben avisos; el personal
+  administrativo y el administrador del sistema no tienen notificaciones de
+  citas pendientes.
+- El médico asignado es quien confirma las citas, aprueba o rechaza las
+  reprogramaciones y las marca como atendidas. Las citas pendientes o
+  confirmadas pasan a `VENCIDA` al terminar la duración del servicio; una tarea
+  periódica las actualiza y las consultas también refrescan ese estado. El
+  médico aún puede registrarlas como atendidas. El personal administrativo
+  puede cancelar citas de su hospital, pero no confirmarlas ni marcarlas como
+  atendidas.
 - Los perfiles permiten actualizar nombre, correo, imagen mediante archivo o URL y
   contraseña con verificación de la contraseña actual. La cédula es obligatoria
   al crear y actualizar una cuenta de paciente; las contraseñas nuevas requieren
@@ -144,8 +170,8 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
 - Cada cuenta puede activar el modo oscuro desde la barra superior. La
   navegación, formularios, selector visual de hospitales, tablas y paneles se
   adaptan a pantallas de escritorio, tablet y teléfono.
-- La campana de notificaciones muestra hasta ocho citas futuras activas según
-  el rol y ámbito de acceso de la cuenta.
+- La campana de notificaciones solo aparece para pacientes y médicos y muestra
+  sus próximas citas y solicitudes de reprogramación pendientes.
 - El administrador del sistema puede asociar un logo a cada hospital. Los
   hospitales se muestran con su logo en el flujo de reserva y en el panel. Se
   puede cargar un archivo PNG, JPEG o WebP de hasta 512 KB o proporcionar una
@@ -154,7 +180,9 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
   duración de los bloques de la agenda. La migración incremental asigna el
   hospital y un servicio por defecto a los datos existentes y conserva las
   citas. El índice único parcial continúa evitando reservas simultáneas,
-  incluidas las pendientes, y libera las citas canceladas.
+  incluidas las pendientes. Los horarios propuestos para reprogramación también
+  se excluyen de la disponibilidad hasta que el médico los apruebe o rechace;
+  los horarios cancelados y vencidos quedan libres.
 
 Las invitaciones y notificaciones de cita usan Resend. Para enviar invitaciones
 configura `RESEND_API_KEY`, `EMAIL_FROM` y `FRONTEND_URL` en `backend\.env`. Si

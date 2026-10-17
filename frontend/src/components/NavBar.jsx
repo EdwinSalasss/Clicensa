@@ -30,6 +30,7 @@ export default function NavBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = usuario ? TABS_POR_ROL[usuario.rol] || [] : [];
+  const puedeVerNotificaciones = ["PACIENTE", "MEDICO", "paciente", "medico"].includes(usuario?.rol);
   const [temaOscuro, setTemaOscuro] = useState(
     () => localStorage.getItem("clisensa_theme") === "dark"
   );
@@ -52,7 +53,7 @@ export default function NavBar() {
   }
 
   async function cargarNotificaciones() {
-    if (!usuario) return;
+    if (!puedeVerNotificaciones) return;
     try {
       setNotificaciones(await api.proximasCitas());
       setErrorNotificaciones("");
@@ -68,7 +69,7 @@ export default function NavBar() {
 
   useEffect(() => {
     let vigente = true;
-    if (usuario) {
+    if (puedeVerNotificaciones) {
       api.proximasCitas().then((citas) => {
         if (vigente) {
           setNotificaciones(citas);
@@ -102,7 +103,7 @@ export default function NavBar() {
         ))}
       </div>
       <div className="userbox">
-        {usuario && (
+        {puedeVerNotificaciones && (
           <div className="notification-wrap">
             <button
               className="icon-button notification-button"
@@ -131,10 +132,16 @@ export default function NavBar() {
                     {notificaciones.map((cita) => (
                       <li key={cita.id}>
                         <Link to={rutaCitas} onClick={() => setMostrarNotificaciones(false)}>
-                          <strong>{cita.fecha} · {cita.hora}</strong>
+                          <strong>
+                            {cita.reprogramacionPendiente
+                              ? `${cita.fechaReprogramacion} · ${cita.horaReprogramacion}`
+                              : `${cita.fecha} · ${cita.hora}`}
+                          </strong>
                           <span>{usuario.rol === "PACIENTE" || usuario.rol === "paciente" ? cita.medicoNombre : cita.pacienteNombre}</span>
                           <small>{cita.servicioNombre} · {cita.hospitalNombre}</small>
-                          <em className={`badge ${cita.estado.toLowerCase()}`}>{cita.estado}</em>
+                          <em className={`badge ${cita.reprogramacionPendiente ? "pendiente" : cita.estado.toLowerCase()}`}>
+                            {cita.reprogramacionPendiente ? "REPROGRAMACIÓN SOLICITADA" : cita.estado}
+                          </em>
                         </Link>
                       </li>
                     ))}

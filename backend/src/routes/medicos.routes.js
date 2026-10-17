@@ -11,6 +11,7 @@ import {
 } from "../middleware/auth.js";
 import { correoConfigurado, enviarCorreo } from "../services/email.js";
 import { esReferenciaImagenValida } from "../services/image.js";
+import { obtenerHorariosDisponibles } from "../services/availability.js";
 
 const router = Router();
 
@@ -205,6 +206,8 @@ router.get("/perfil", requiereAuth, requiereRol("MEDICO"), async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { especialidad } = req.query;
+    const soloDisponibles = req.query.soloDisponibles === "true";
+    const soloActivos = req.query.soloActivos === "true";
     if (especialidad !== undefined && typeof especialidad !== "string") {
       return res.status(400).json({ error: "especialidad debe ser texto" });
     }
@@ -212,14 +215,36 @@ router.get("/", async (req, res) => {
     if (hospitalId !== undefined && (!Number.isInteger(hospitalId) || hospitalId <= 0)) {
       return res.status(400).json({ error: "hospitalId debe ser un entero positivo" });
     }
+    const servicioId = req.query.servicioId === undefined ? undefined : Number(req.query.servicioId);
+    const { fecha } = req.query;
+    if (soloDisponibles && (
+      !hospitalId ||
+      !Number.isInteger(servicioId) || servicioId <= 0 ||
+      typeof fecha !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(fecha) ||
+      Number.isNaN(new Date(`${fecha}T00:00:00.000Z`).getTime()) ||
+      new Date(`${fecha}T00:00:00.000Z`).toISOString().slice(0, 10) !== fecha
+    )) {
+      return res.status(400).json({ error: "hospitalId, servicioId y fecha válida son requeridos para filtrar disponibilidad" });
+    }
+    if (soloDisponibles) {
+      const servicio = await prisma.tipoServicio.findUnique({ where: { id: servicioId } });
+      if (!servicio || servicio.hospitalId !== hospitalId) {
+        return res.status(400).json({ error: "El servicio no pertenece al hospital seleccionado" });
+      }
+    }
     const medicos = await prisma.medico.findMany({
       where: {
         ...(hospitalId ? { hospitalId } : {}),
         ...(especialidad ? { especialidad: { contains: especialidad, mode: "insensitive" } } : {}),
+        ...(soloDisponibles || soloActivos ? {
+          usuario: { is: { rol: "MEDICO", activadoEn: { not: null } } },
+        } : {}),
       },
       orderBy: { nombre: "asc" },
       include: {
         horarios: { orderBy: { hora: "asc" } },
+        disponibilidad: true,
         perfil: {
           select: {
             nombreCompleto: true,
@@ -230,12 +255,19 @@ router.get("/", async (req, res) => {
         },
       },
     });
-    res.json(medicos.map(({ perfil, ...medico }) => ({
+    const conDisponibilidad = soloDisponibles
+      ? (await Promise.all(medicos.map(async (medico) => ({
+          medico,
+          disponibles: await obtenerHorariosDisponibles(prisma, medico, fecha, servicioId),
+        })))).filter(({ disponibles }) => disponibles.length > 0)
+      : medicos.map((medico) => ({ medico, disponibles: undefined }));
+    res.json(conDisponibilidad.map(({ medico: { perfil, disponibilidad, ...medico }, disponibles }) => ({
       ...medico,
       nombre: perfil?.nombreCompleto || medico.nombre,
       licenciaMedica: perfil?.licenciaMedica || null,
       biografia: perfil?.biografia || "",
       fotoUrl: perfil?.fotoUrl || null,
+      ...(soloDisponibles ? { disponibles } : {}),
     })));
   } catch (err) {
     console.error(err);

@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { prisma } from "../db/prisma.js";
 import { requiereAuth, requiereRol } from "../middleware/auth.js";
+import {
+  obtenerCalendarioDisponibilidad,
+  obtenerHorariosDisponibles,
+} from "../services/availability.js";
+import { marcarCitasVencidas } from "../services/appointmentStatus.js";
 
 const router = Router();
 
@@ -50,49 +55,73 @@ router.get("/disponibles", async (req, res) => {
       include: { disponibilidad: true },
     });
     if (!medico) return res.status(404).json({ error: "Médico no encontrado" });
-    let duracionMin = 30;
-    if (servicioId) {
-      const servicio = await prisma.tipoServicio.findUnique({ where: { id: servicioId } });
-      if (!servicio || servicio.hospitalId !== medico.hospitalId) {
-        return res.status(400).json({ error: "El servicio no pertenece al hospital del médico" });
-      }
-      duracionMin = servicio.duracionMin;
+    const servicio = servicioId
+      ? await prisma.tipoServicio.findUnique({ where: { id: servicioId } })
+      : await prisma.tipoServicio.findFirst({
+          where: { hospitalId: medico.hospitalId },
+          orderBy: { id: "asc" },
+        });
+    if (!servicio || servicio.hospitalId !== medico.hospitalId) {
+      return res.status(400).json({ error: "El servicio no pertenece al hospital del médico" });
     }
-    const diaSemana = new Date(`${fecha}T00:00:00.000Z`).getUTCDay();
-    const bloques = medico.disponibilidad.filter((item) => item.diaSemana === diaSemana);
-    const horariosLegacy = medico.disponibilidad.length
-      ? []
-      : await prisma.horarioBase.findMany({ where: { medicoId }, orderBy: { hora: "asc" } });
-    const citas = await prisma.cita.findMany({
-      where: { medicoId, fecha, estado: { not: "CANCELADA" } },
-      select: { hora: true, servicio: { select: { duracionMin: true } } },
-    });
-    const ocupaciones = citas.map((cita) => {
-      const inicio = minutos(cita.hora);
-      return inicio === null ? null : { inicio, fin: inicio + (cita.servicio?.duracionMin || 30) };
-    }).filter(Boolean);
-    const candidatos = new Set();
-    for (const bloque of bloques) {
-      const inicio = minutos(bloque.horaInicio);
-      const fin = minutos(bloque.horaFin);
-      if (inicio === null || fin === null) continue;
-      for (let slot = inicio; slot + duracionMin <= fin; slot += duracionMin) {
-        candidatos.add(`${String(Math.floor(slot / 60)).padStart(2, "0")}:${String(slot % 60).padStart(2, "0")}`);
-      }
-    }
-    if (!medico.disponibilidad.length) {
-      for (const horario of horariosLegacy) candidatos.add(horario.hora);
-    }
-    const disponibles = [...candidatos].sort().filter((hora) => {
-      const inicio = minutos(hora);
-      return fechaHoraFutura(fecha, hora) && !ocupaciones.some((ocupacion) =>
-        inicio < ocupacion.fin && inicio + duracionMin > ocupacion.inicio
-      );
-    });
+    await marcarCitasVencidas({ medicoId });
+    const disponibles = await obtenerHorariosDisponibles(prisma, medico, fecha, servicio.id);
     res.json({ medicoId, fecha, disponibles });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al consultar horarios disponibles" });
+  }
+});
+
+router.get("/calendario", async (req, res) => {
+  try {
+    const medicoId = Number(req.query.medicoId);
+    const servicioId = Number(req.query.servicioId);
+    const { desde, hasta } = req.query;
+    if (
+      !Number.isInteger(medicoId) || medicoId <= 0 ||
+      !Number.isInteger(servicioId) || servicioId <= 0 ||
+      !fechaValida(desde) || !fechaValida(hasta)
+    ) {
+      return res.status(400).json({
+        error: "medicoId, servicioId y un rango válido (desde/hasta en YYYY-MM-DD) son requeridos",
+      });
+    }
+    const dias = (new Date(`${hasta}T00:00:00.000Z`) - new Date(`${desde}T00:00:00.000Z`)) / 86_400_000;
+    if (dias < 0 || dias > 30) {
+      return res.status(400).json({ error: "El calendario debe abarcar entre 1 y 31 días" });
+    }
+
+    const [medico, servicio] = await Promise.all([
+      prisma.medico.findUnique({
+        where: { id: medicoId },
+        include: {
+          disponibilidad: true,
+          usuario: { select: { activadoEn: true } },
+        },
+      }),
+      prisma.tipoServicio.findUnique({ where: { id: servicioId } }),
+    ]);
+    if (!medico) return res.status(404).json({ error: "Médico no encontrado" });
+    if (!servicio || servicio.hospitalId !== medico.hospitalId) {
+      return res.status(400).json({ error: "El servicio no pertenece al hospital del médico" });
+    }
+    if (!medico.usuario?.activadoEn) {
+      return res.status(403).json({ error: "El médico seleccionado todavía no ha activado su cuenta" });
+    }
+
+    await marcarCitasVencidas({ medicoId });
+    const diasDisponibilidad = await obtenerCalendarioDisponibilidad(
+      prisma,
+      medico,
+      servicio,
+      desde,
+      hasta
+    );
+    res.json({ medicoId, servicioId, desde, hasta, dias: diasDisponibilidad });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al consultar disponibilidad del calendario" });
   }
 });
 

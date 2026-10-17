@@ -255,7 +255,7 @@
           }
         },
         {
-          "name": "Reprogramar cita (paciente)",
+          "name": "Solicitar reprogramación (paciente; requiere aprobación médica)",
           "request": {
             "method": "PUT",
             "auth": {
@@ -269,6 +269,34 @@
               "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/citas/{{citaId}}/reprogramar"
+          }
+        },
+        {
+          "name": "Solicitudes de reprogramación (médico asignado)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{tokenMedico}}", "type": "string" }]
+            },
+            "url": "{{baseUrl}}/citas/solicitudes-reprogramacion"
+          }
+        },
+        {
+          "name": "Resolver reprogramación (médico asignado)",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{tokenMedico}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aprobar\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/citas/{{citaId}}/reprogramacion/decision"
           }
         },
         {

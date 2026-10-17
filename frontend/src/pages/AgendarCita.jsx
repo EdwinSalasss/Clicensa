@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import NavBar from "../components/NavBar.jsx";
+import AvailabilityCalendar from "../components/AvailabilityCalendar.jsx";
 import { api } from "../api/client.js";
 
 function hoyLocal() {
   const hoy = new Date();
   return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+}
+
+function rangoDelMes(mes) {
+  const [anio, numeroMes] = mes.split("-").map(Number);
+  return {
+    desde: `${mes}-01`,
+    hasta: `${mes}-${String(new Date(Date.UTC(anio, numeroMes, 0)).getUTCDate()).padStart(2, "0")}`,
+  };
 }
 
 export default function AgendarCita() {
@@ -14,8 +23,10 @@ export default function AgendarCita() {
   const [servicioId, setServicioId] = useState("");
   const [medicos, setMedicos] = useState([]);
   const [medicoId, setMedicoId] = useState("");
-  const [fecha, setFecha] = useState(hoyLocal);
-  const [slots, setSlots] = useState([]);
+  const [fecha, setFecha] = useState("");
+  const [mesCalendario, setMesCalendario] = useState(() => hoyLocal().slice(0, 7));
+  const [disponibilidadMes, setDisponibilidadMes] = useState({});
+  const [cargandoCalendario, setCargandoCalendario] = useState(false);
   const [hora, setHora] = useState("");
   const [paso, setPaso] = useState(1);
   const [mensaje, setMensaje] = useState("");
@@ -32,15 +43,11 @@ export default function AgendarCita() {
     setServicioId("");
     setMedicos([]);
     setMedicoId("");
-    setSlots([]);
+    setFecha("");
+    setHora("");
     if (hospitalId) {
       api.servicios(hospitalId).then((items) => {
         if (vigente) setServicios(items);
-      }).catch((err) => {
-        if (vigente) setError(err.message);
-      });
-      api.medicos(null, hospitalId).then((items) => {
-        if (vigente) setMedicos(items);
       }).catch((err) => {
         if (vigente) setError(err.message);
       });
@@ -50,16 +57,51 @@ export default function AgendarCita() {
 
   useEffect(() => {
     let vigente = true;
+    setMedicos([]);
+    setMedicoId("");
+    setFecha("");
     setHora("");
-    setSlots([]);
-    if (medicoId && fecha && servicioId) {
-      api.horariosDisponibles(medicoId, fecha, servicioId)
-        .then((resultado) => { if (vigente) setSlots(resultado.disponibles); })
-        .catch((err) => { if (vigente) setError(err.message); });
+    setDisponibilidadMes({});
+    if (!hospitalId || !servicioId) {
+      return () => { vigente = false; };
     }
+    api.medicos(null, hospitalId, { soloActivos: true }).then((items) => {
+      if (vigente) setMedicos(items);
+    }).catch((err) => {
+      if (vigente) setError(err.message);
+    });
     return () => { vigente = false; };
-  }, [medicoId, fecha, servicioId]);
+  }, [hospitalId, servicioId]);
 
+  useEffect(() => {
+    let vigente = true;
+    if (!medicoId || !servicioId) {
+      setDisponibilidadMes({});
+      setCargandoCalendario(false);
+      return () => { vigente = false; };
+    }
+    setCargandoCalendario(true);
+    setDisponibilidadMes({});
+    const { desde, hasta } = rangoDelMes(mesCalendario);
+    api.horariosCalendario(medicoId, servicioId, desde, hasta)
+      .then((resultado) => {
+        if (vigente) {
+          setDisponibilidadMes(Object.fromEntries(
+            resultado.dias.map((dia) => [dia.fecha, dia.disponibles])
+          ));
+          setError("");
+        }
+      })
+      .catch((err) => {
+        if (vigente) setError(err.message);
+      })
+      .finally(() => {
+        if (vigente) setCargandoCalendario(false);
+      });
+    return () => { vigente = false; };
+  }, [medicoId, servicioId, mesCalendario]);
+
+  const slots = fecha ? disponibilidadMes[fecha] || [] : [];
   const hospitalSeleccionado = hospitales.find((item) => String(item.id) === hospitalId);
   const servicioSeleccionado = servicios.find((item) => String(item.id) === servicioId);
   const medicoSeleccionado = medicos.find((item) => String(item.id) === medicoId);
@@ -82,6 +124,7 @@ export default function AgendarCita() {
       setMensaje(`Cita solicitada para el ${cita.fecha} a las ${cita.hora}.${aviso}`);
       setPaso(1);
       setHora("");
+      setFecha("");
       setMedicoId("");
     } catch (err) {
       setError(err.message);
@@ -89,6 +132,19 @@ export default function AgendarCita() {
       setCargando(false);
     }
   }
+
+  function cambiarMes(mes) {
+    setMesCalendario(mes);
+    setFecha("");
+    setHora("");
+  }
+
+  function seleccionarMedico(id) {
+    setMedicoId(id);
+    setFecha("");
+    setHora("");
+  }
+
 
   return (
     <>
@@ -141,25 +197,55 @@ export default function AgendarCita() {
           <section className="card">
             <h3>Elige médico y horario</h3>
             <label htmlFor="medico">MÉDICO</label>
-            <select id="medico" value={medicoId} onChange={(e) => setMedicoId(e.target.value)} required>
+            <select id="medico" value={medicoId} onChange={(e) => seleccionarMedico(e.target.value)} required>
               <option value="">Seleccione un médico</option>
               {medicos.map((medico) => <option value={medico.id} key={medico.id}>{medico.nombre} · {medico.especialidad}</option>)}
             </select>
-            <label htmlFor="fecha">FECHA</label>
-            <input id="fecha" type="date" min={hoyLocal()} value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+            {hospitalId && servicioId && medicos.length === 0 && (
+              <p className="muted">Este hospital no tiene médicos activos para atender en este momento.</p>
+            )}
             {medicoId && (
               <>
-                <label>HORARIO DISPONIBLE</label>
-                <div className="slots">
-                  {slots.length === 0 ? <span className="muted">No hay horarios disponibles para esta selección.</span> : slots.map((slot) => (
-                    <button type="button" key={slot} className={`slot ${hora === slot ? "selected" : ""}`} onClick={() => setHora(slot)}>{slot}</button>
-                  ))}
-                </div>
+                <AvailabilityCalendar
+                  mes={mesCalendario}
+                  fechaSeleccionada={fecha}
+                  minimo={hoyLocal()}
+                  disponibilidad={disponibilidadMes}
+                  cargando={cargandoCalendario}
+                  onCambiarMes={cambiarMes}
+                  onSeleccionarFecha={(seleccionada) => { setFecha(seleccionada); setHora(""); }}
+                />
+                {fecha && (
+                  <section className="time-picker" aria-label="Seleccionar horario disponible">
+                    <div className="time-picker-heading">
+                      <span className="time-picker-step">2</span>
+                      <div>
+                        <h4>Ahora elige una hora</h4>
+                        <p>Horarios disponibles para el {fecha}</p>
+                      </div>
+                    </div>
+                    <div className="slots">
+                      {slots.map((slot) => (
+                        <button
+                          type="button"
+                          key={slot}
+                          className={`slot time-slot ${hora === slot ? "selected" : ""}`}
+                          aria-pressed={hora === slot}
+                          onClick={() => setHora(slot)}
+                        >
+                          <span aria-hidden="true">◷</span>{slot}
+                        </button>
+                      ))}
+                      {!slots.length && <p className="muted">Este día ya no tiene horarios libres. Elige otra fecha disponible.</p>}
+                    </div>
+                    {hora && <p className="selected-time" role="status">Hora seleccionada: <strong>{hora}</strong></p>}
+                  </section>
+                )}
               </>
             )}
             <div className="button-row">
               <button className="ghost" onClick={() => setPaso(1)}>ATRÁS</button>
-              <button disabled={!medicoId || !hora} onClick={() => { setError(""); setPaso(3); }}>REVISAR CITA</button>
+              <button disabled={!medicoId || !fecha || !slots.includes(hora)} onClick={() => { setError(""); setPaso(3); }}>REVISAR CITA</button>
             </div>
           </section>
         )}
