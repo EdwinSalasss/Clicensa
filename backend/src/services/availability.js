@@ -1,11 +1,4 @@
-function minutos(hora) {
-  const match = /^(?:[01]\d|2[0-3]):[0-5]\d$/.exec(hora || "");
-  return match ? Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3)) : null;
-}
-
-function fechaHoraFutura(fecha, hora) {
-  return new Date(`${fecha}T${hora}:00`).getTime() > Date.now();
-}
+import { fechaHoraFutura, minutos } from "./dateTime.js";
 
 function calcularHorarios({ medico, servicio, fecha, ocupaciones, horariosLegacy }) {
   const diaSemana = new Date(`${fecha}T00:00:00.000Z`).getUTCDay();
