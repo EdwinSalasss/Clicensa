@@ -6,9 +6,18 @@ function getToken() {
   return localStorage.getItem("clisensa_token");
 }
 
+function fetchApi(url, options) {
+  return fetch(url, options).catch((error) => {
+    if (error.name === "AbortError") {
+      throw new Error("La solicitud tardó demasiado. Inténtalo nuevamente.");
+    }
+    throw new Error("No se pudo conectar con CLISENSA. Verifica tu conexión e inténtalo nuevamente.");
+  });
+}
+
 async function request(path, options = {}) {
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchApi(`${API_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -16,12 +25,33 @@ async function request(path, options = {}) {
       ...(options.headers || {}),
     },
   });
-  const data = await res.json().catch(() => ({}));
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    if (res.ok) throw new Error("El servidor devolvió una respuesta no válida. Inténtalo nuevamente.");
+    data = {};
+  }
   if (res.status === 401 && token && !path.startsWith("/auth/login")) {
     cerrarSesion();
     window.dispatchEvent(new Event("clisensa:session-expired"));
   }
-  if (!res.ok) throw new Error(data.error || "Error en la solicitud");
+  if (!res.ok) {
+    const mensajesPorEstado = {
+      400: "Revisa los datos ingresados e inténtalo nuevamente.",
+      401: "Tu sesión venció. Inicia sesión nuevamente.",
+      403: "No tienes permiso para realizar esta acción.",
+      404: "No se encontró la información solicitada.",
+      409: "La información ya existe o cambió. Revisa los datos e inténtalo nuevamente.",
+      413: "La información enviada supera el tamaño permitido.",
+      429: "Hay demasiadas solicitudes. Espera un momento e inténtalo nuevamente.",
+      500: "Ocurrió un error en el servidor. Inténtalo nuevamente más tarde.",
+      502: "El servidor no pudo completar la solicitud. Inténtalo nuevamente.",
+      503: "El servicio no está disponible en este momento. Inténtalo más tarde.",
+    };
+    const errorDelServidor = typeof data.error === "string" ? data.error : "";
+    throw new Error(errorDelServidor || mensajesPorEstado[res.status] || "No se pudo completar la solicitud. Inténtalo nuevamente.");
+  }
   return data;
 }
 

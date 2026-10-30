@@ -196,13 +196,13 @@ export default function MedicoPanel() {
             <h3>Mi perfil médico</h3>
             <form onSubmit={guardarPerfil}>
               <label htmlFor="biografia">BIOGRAFÍA</label>
-              <textarea id="biografia" rows="4" value={biografia} onChange={(e) => setBiografia(e.target.value)} />
+              <textarea id="biografia" rows="4" maxLength="2000" value={biografia} onChange={(e) => setBiografia(e.target.value)} />
               <label htmlFor="foto-url">URL DE FOTO</label>
-              <input id="foto-url" type="url" value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="https://" />
+              <input id="foto-url" type="url" pattern="https?://.+" title="Usa una dirección que comience con http:// o https://." maxLength="2048" value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="https://" />
               <label htmlFor="password-actual-medico">CONTRASEÑA ACTUAL</label>
               <input id="password-actual-medico" type="password" value={passwordActual} onChange={(e) => setPasswordActual(e.target.value)} autoComplete="current-password" />
               <label htmlFor="password-medico">CAMBIAR CONTRASEÑA</label>
-              <input id="password-medico" type="password" minLength="8" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+              <input id="password-medico" type="password" minLength="8" maxLength="72" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} title="Usa al menos 8 caracteres y evita superar 72 bytes." />
               <button className="block" type="submit">Guardar perfil</button>
             </form>
           </section>
@@ -240,7 +240,15 @@ export default function MedicoPanel() {
               <select id="identificador-paciente" value={tipoIdentificador} onChange={(e) => setTipoIdentificador(e.target.value)}>
                 <option value="correo">Correo electrónico</option><option value="cedula">Cédula</option>
               </select>
-              <input aria-label="Identificador del paciente" value={paciente} onChange={(e) => setPaciente(e.target.value)} required />
+              <input
+                aria-label={tipoIdentificador === "correo" ? "Correo electrónico del paciente" : "Cédula del paciente"}
+                type={tipoIdentificador === "correo" ? "email" : "text"}
+                maxLength={tipoIdentificador === "correo" ? 254 : 32}
+                autoComplete={tipoIdentificador === "correo" ? "email" : "off"}
+                value={paciente}
+                onChange={(e) => setPaciente(e.target.value)}
+                required
+              />
             </div>
             <div>
               <label htmlFor="servicio-directo">SERVICIO</label>

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../db/prisma.js";
 import { firmarToken, requiereAuth } from "../middleware/auth.js";
 import { esReferenciaImagenValida } from "../services/image.js";
+import { contrasenaValida } from "../services/validation.js";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.post("/login", async (req, res) => {
       !correo.trim() ||
       !password.trim()
     ) {
-      return res.status(400).json({ error: "correo y password son requeridos" });
+      return res.status(400).json({ error: "Ingresa tu correo electrónico y contraseña." });
     }
 
     const correoNormalizado = correo.trim().toLowerCase();
@@ -29,16 +30,16 @@ router.post("/login", async (req, res) => {
       include: { perfilMedico: { select: { fotoUrl: true } } },
     });
     if (!usuario) {
-      return res.status(401).json({ error: "Credenciales invalidas" });
+      return res.status(401).json({ error: "El correo o la contraseña no son correctos." });
     }
 
     if (usuario.rol === "MEDICO" && !usuario.activadoEn) {
-      return res.status(403).json({ error: "Activa tu cuenta desde el enlace enviado por correo" });
+      return res.status(403).json({ error: "Activa tu cuenta desde el enlace que enviamos a tu correo." });
     }
 
     const passwordOk = await bcrypt.compare(password, usuario.password);
     if (!passwordOk) {
-      return res.status(401).json({ error: "Credenciales invalidas" });
+      return res.status(401).json({ error: "El correo o la contraseña no son correctos." });
     }
     if (!usuario.activo) {
       return res.status(403).json({ error: "La cuenta está desactivada. Contacta al administrador del hospital." });
@@ -61,7 +62,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error interno al iniciar sesion" });
+    res.status(500).json({ error: "No se pudo iniciar sesión. Inténtalo nuevamente más tarde." });
   }
 });
 
@@ -76,24 +77,27 @@ router.post("/register", async (req, res) => {
       !correo.trim() ||
       !password.trim() ||
       typeof cedula !== "string" ||
-      !cedula.trim()
+      !cedula.trim() ||
+      nombre.trim().length > 120 ||
+      correo.trim().length > 254 ||
+      cedula.trim().length > 32
     ) {
-      return res.status(400).json({ error: "nombre, correo, password y cédula son requeridos" });
+      return res.status(400).json({ error: "Ingresa tu nombre (máximo 120 caracteres), correo, contraseña y cédula (máximo 32 caracteres)." });
     }
 
     const correoNormalizado = correo.trim();
     if (!correoValido(correoNormalizado)) {
-      return res.status(400).json({ error: "correo debe tener un formato valido" });
+      return res.status(400).json({ error: "Escribe un correo electrónico válido." });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres" });
+    if (!contrasenaValida(password)) {
+      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres y no superar 72 bytes." });
     }
     const correoCanonico = correoNormalizado.toLowerCase();
     const existente = await prisma.usuario.findUnique({
       where: { correo: correoCanonico },
     });
     if (existente) {
-      return res.status(409).json({ error: "Ese correo ya esta registrado" });
+      return res.status(409).json({ error: "Ese correo ya está registrado." });
     }
     const cedulaNormalizada = cedula.trim();
     const cedulaExistente = await prisma.usuario.findUnique({
@@ -132,7 +136,7 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ error: "Ese correo o cédula ya está registrado" });
     }
     console.error(err);
-    res.status(500).json({ error: "Error interno al registrar paciente" });
+    res.status(500).json({ error: "No se pudo crear la cuenta. Inténtalo nuevamente más tarde." });
   }
 });
 
@@ -165,30 +169,31 @@ router.get("/perfil", requiereAuth, async (req, res) => {
 router.put("/perfil", requiereAuth, async (req, res) => {
   try {
     if (req.usuario.tipo === "activacion_medico") {
-      return res.status(403).json({ error: "Activa tu cuenta antes de editar el perfil general" });
+      return res.status(403).json({ error: "Activa tu cuenta antes de editar tu perfil." });
     }
     const { nombre, correo, cedula, fotoUrl, password, passwordActual } = req.body || {};
     if (
       typeof nombre !== "string" || !nombre.trim() ||
+      nombre.trim().length > 120 ||
       typeof correo !== "string" || !correo.trim() ||
-      !correoValido(correo.trim())
+      !correoValido(correo.trim()) || correo.trim().length > 254
     ) {
-      return res.status(400).json({ error: "nombre y un correo válido son requeridos" });
+      return res.status(400).json({ error: "Ingresa un nombre de hasta 120 caracteres y un correo electrónico válido de hasta 254 caracteres." });
     }
     if (req.usuario.rol === "PACIENTE" && (typeof cedula !== "string" || !cedula.trim())) {
       return res.status(400).json({ error: "La cédula es obligatoria para pacientes" });
     }
-    if (cedula !== undefined && (typeof cedula !== "string" || !cedula.trim())) {
-      return res.status(400).json({ error: "cedula debe ser texto no vacío" });
+    if (cedula !== undefined && (typeof cedula !== "string" || !cedula.trim() || cedula.trim().length > 32)) {
+      return res.status(400).json({ error: "Ingresa una cédula de hasta 32 caracteres." });
     }
     if (!esReferenciaImagenValida(fotoUrl)) {
       return res.status(400).json({
-        error: "fotoUrl debe ser una URL HTTP/HTTPS o una imagen PNG, JPEG o WebP de hasta 512 KB",
+        error: "La imagen debe ser una dirección web HTTP/HTTPS o un archivo PNG, JPEG o WebP de hasta 512 KB.",
       });
     }
     if (password !== undefined && password !== "") {
-      if (typeof password !== "string" || password.length < 8) {
-        return res.status(400).json({ error: "La nueva contraseña debe tener al menos 8 caracteres" });
+      if (!contrasenaValida(password)) {
+        return res.status(400).json({ error: "La nueva contraseña debe tener al menos 8 caracteres y no superar 72 bytes." });
       }
       if (typeof passwordActual !== "string" || !passwordActual) {
         return res.status(400).json({ error: "Indica tu contraseña actual para cambiarla" });

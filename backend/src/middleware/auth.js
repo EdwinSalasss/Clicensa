@@ -46,12 +46,12 @@ export async function requiereAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) {
-    return res.status(401).json({ error: "Token no proporcionado" });
+    return res.status(401).json({ error: "Inicia sesión para continuar." });
   }
   try {
     req.usuario = jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    return res.status(401).json({ error: "Token invalido o expirado" });
+    return res.status(401).json({ error: "Tu sesión venció o no es válida. Inicia sesión nuevamente." });
   }
   let cuenta;
   try {
@@ -73,7 +73,7 @@ export async function requiereAuth(req, res, next) {
 export function requiereRol(...rolesPermitidos) {
   return (req, res, next) => {
     if (!req.usuario || !rolesPermitidos.includes(req.usuario.rol)) {
-      return res.status(403).json({ error: "No tiene permisos para esta accion" });
+      return res.status(403).json({ error: "No tienes permiso para realizar esta acción." });
     }
     next();
   };

@@ -12,6 +12,7 @@ import {
 import { correoConfigurado, enviarCorreo } from "../services/email.js";
 import { esReferenciaImagenValida } from "../services/image.js";
 import { obtenerHorariosDisponibles } from "../services/availability.js";
+import { contrasenaValida } from "../services/validation.js";
 
 const router = Router();
 
@@ -24,17 +25,21 @@ function escapeHtml(value) {
 router.post("/invitar", requiereAuth, requiereRol("PERSONAL_ADMINISTRATIVO"), async (req, res) => {
   try {
     const { licenciaMedica, correo, especialidad } = req.body || {};
-    if (![licenciaMedica, correo, especialidad].every((value) => typeof value === "string" && value.trim())) {
-      return res.status(400).json({ error: "licenciaMedica, correo y especialidad son requeridos" });
+    if (
+      typeof licenciaMedica !== "string" || !licenciaMedica.trim() || licenciaMedica.trim().length > 80 ||
+      typeof correo !== "string" || !correo.trim() || correo.trim().length > 254 ||
+      typeof especialidad !== "string" || !especialidad.trim() || especialidad.trim().length > 100
+    ) {
+      return res.status(400).json({ error: "Ingresa la licencia médica (máximo 80 caracteres), un correo válido y una especialidad (máximo 100 caracteres)." });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim())) {
-      return res.status(400).json({ error: "correo debe ser una dirección válida" });
+      return res.status(400).json({ error: "Escribe un correo electrónico válido." });
     }
     if (!req.usuario.hospitalId) {
       return res.status(403).json({ error: "La cuenta administrativa no está asociada a un hospital" });
     }
     if (!correoConfigurado()) {
-      return res.status(503).json({ error: "Configura RESEND_API_KEY y EMAIL_FROM antes de enviar invitaciones." });
+      return res.status(503).json({ error: "El envío de invitaciones no está configurado. Solicita al administrador que configure el servicio de correo." });
     }
 
     const correoNormalizado = correo.trim().toLowerCase();
@@ -108,24 +113,33 @@ router.put("/perfil", requierePerfilMedico, async (req, res) => {
     const { biografia, fotoUrl, password, passwordActual, nombreCompleto } = req.body || {};
     if (
       req.usuario.tipo === "activacion_medico" &&
-      (typeof password !== "string" ||
-        password.length < 8 ||
+      (!contrasenaValida(password) ||
         typeof nombreCompleto !== "string" ||
-        !nombreCompleto.trim())
+        !nombreCompleto.trim() ||
+        nombreCompleto.trim().length > 120)
     ) {
-      return res.status(400).json({ error: "Al activar la cuenta, nombreCompleto y password son requeridos" });
+      return res.status(400).json({ error: "Al activar tu cuenta, ingresa tu nombre completo (máximo 120 caracteres) y una contraseña de al menos 8 caracteres y hasta 72 bytes." });
+    }
+    if (
+      nombreCompleto !== undefined &&
+      (typeof nombreCompleto !== "string" || !nombreCompleto.trim() || nombreCompleto.trim().length > 120)
+    ) {
+      return res.status(400).json({ error: "Ingresa un nombre completo de hasta 120 caracteres." });
+    }
+    if (biografia !== undefined && (typeof biografia !== "string" || biografia.length > 2000)) {
+      return res.status(400).json({ error: "La biografía no puede superar los 2,000 caracteres." });
     }
     if (!esReferenciaImagenValida(fotoUrl)) {
       return res.status(400).json({
-        error: "fotoUrl debe ser una URL HTTP/HTTPS o una imagen PNG, JPEG o WebP de hasta 512 KB",
+        error: "La imagen debe ser una dirección web HTTP/HTTPS o un archivo PNG, JPEG o WebP de hasta 512 KB.",
       });
     }
-    if (password && (typeof password !== "string" || password.length < 8)) {
-      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres" });
+    if (password && !contrasenaValida(password)) {
+      return res.status(400).json({ error: "La contraseña debe tener al menos 8 caracteres y no superar 72 bytes." });
     }
     if (password && req.usuario.tipo !== "activacion_medico") {
       if (typeof passwordActual !== "string" || !passwordActual) {
-        return res.status(400).json({ error: "Indica tu contraseña actual para cambiarla" });
+        return res.status(400).json({ error: "Escribe tu contraseña actual para poder cambiarla." });
       }
       const cuenta = await prisma.usuario.findUnique({
         where: { id: req.usuario.id },
@@ -461,7 +475,7 @@ router.post("/:id/horarios", requiereAuth, requiereRol("PERSONAL_ADMINISTRATIVO"
       return res.status(403).json({ error: "El médico pertenece a otro hospital" });
     }
     if (typeof hora !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
-      return res.status(400).json({ error: "hora debe tener formato HH:mm" });
+      return res.status(400).json({ error: "Escribe la hora con el formato de 24 horas HH:mm." });
     }
 
     const existente = await prisma.horarioBase.findFirst({

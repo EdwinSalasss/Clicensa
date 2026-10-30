@@ -64,7 +64,7 @@ app.use("/api/citas", citasRoutes);
 app.use("/api/reportes", reportesRoutes);
 
 app.use((req, res) => {
-  res.status(404).json({ error: `Ruta no encontrada: ${req.method} ${req.path}` });
+  res.status(404).json({ error: "No se encontró la ruta solicitada." });
 });
 
 app.use((err, _req, res, _next) => {
@@ -72,7 +72,7 @@ app.use((err, _req, res, _next) => {
     return res.status(413).json({ error: "El cuerpo de la solicitud supera el límite de 1 MB" });
   }
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    return res.status(400).json({ error: "El cuerpo JSON de la solicitud no es válido" });
+    return res.status(400).json({ error: "Los datos enviados no tienen un formato válido." });
   }
   console.error(err);
   res.status(500).json({ error: "Error interno del servidor" });

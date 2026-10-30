@@ -10,6 +10,11 @@ const fechaHoy = [
   String(ahora.getDate()).padStart(2, "0"),
 ].join("-");
 const inicioMes = `${fechaHoy.slice(0, 8)}01`;
+const fechaMaximaReporte = (fecha) => {
+  const maximo = new Date(`${fecha}T00:00:00.000Z`);
+  maximo.setUTCDate(maximo.getUTCDate() + 365);
+  return maximo.toISOString().slice(0, 10);
+};
 const ESTADOS = ["PENDIENTE", "CONFIRMADA", "CANCELADA", "ATENDIDA", "VENCIDA"];
 const COLUMNAS = ["Fecha", "Hora", "Paciente", "Médico", "Servicio", "Estado", "Precio"];
 
@@ -201,6 +206,11 @@ export default function Reportes() {
       setError("Selecciona una fecha de inicio y una fecha de fin.");
       return;
     }
+    if (hasta < desde || hasta > fechaMaximaReporte(desde)) {
+      setError("El periodo debe ser válido y no puede superar 366 días.");
+      return;
+    }
+    setError("");
     setFiltros({ desde, hasta });
   }
 
@@ -227,11 +237,11 @@ export default function Reportes() {
           <form onSubmit={consultar}>
             <label>
               DESDE
-              <input type="date" value={desde} onChange={(event) => setDesde(event.target.value)} required />
+              <input type="date" max={hasta || undefined} value={desde} onChange={(event) => setDesde(event.target.value)} required />
             </label>
             <label>
               HASTA
-              <input type="date" value={hasta} min={desde} onChange={(event) => setHasta(event.target.value)} required />
+              <input type="date" value={hasta} min={desde} max={desde ? fechaMaximaReporte(desde) : undefined} onChange={(event) => setHasta(event.target.value)} required />
             </label>
             <button type="submit" disabled={cargando}>Consultar</button>
           </form>

@@ -14,7 +14,7 @@ router.get(
     try {
       const { desde, hasta } = req.query;
       if (!fechaValida(desde) || !fechaValida(hasta)) {
-        return res.status(400).json({ error: "Indica desde y hasta con formato YYYY-MM-DD" });
+        return res.status(400).json({ error: "Indica las fechas de inicio y fin con formato AAAA-MM-DD." });
       }
       const dias = (
         new Date(`${hasta}T00:00:00.000Z`) -

@@ -8,7 +8,7 @@ router.get("/servicios", async (req, res) => {
   try {
     const hospitalId = Number(req.query.hospitalId);
     if (!Number.isInteger(hospitalId) || hospitalId <= 0) {
-      return res.status(400).json({ error: "hospitalId debe ser un entero positivo" });
+      return res.status(400).json({ error: "Selecciona un hospital válido." });
     }
     const servicios = await prisma.tipoServicio.findMany({
       where: { hospitalId },
@@ -28,17 +28,25 @@ router.post(
   async (req, res) => {
     try {
       const { nombre, duracionMin, precio } = req.body || {};
-      const parsedDuration = Number(duracionMin);
+      const parsedDuration = duracionMin;
       const parsedPrice = Number(precio);
+      const precioValido =
+        typeof precio === "number" &&
+        Number.isFinite(parsedPrice) &&
+        parsedPrice >= 0 &&
+        parsedPrice <= 99_999_999.99 &&
+        /^\d+(?:\.\d{1,2})?$/.test(String(precio));
       if (
         typeof nombre !== "string" ||
         !nombre.trim() ||
+        nombre.trim().length > 100 ||
+        typeof parsedDuration !== "number" ||
         !Number.isInteger(parsedDuration) ||
         parsedDuration < 5 ||
-        !Number.isFinite(parsedPrice) ||
-        parsedPrice < 0
+        parsedDuration % 5 !== 0 ||
+        !precioValido
       ) {
-        return res.status(400).json({ error: "Nombre, duración (mínimo 5 minutos) y precio válido son requeridos" });
+        return res.status(400).json({ error: "Ingresa un nombre de hasta 100 caracteres, una duración en múltiplos de 5 minutos (mínimo 5) y un precio entre 0 y 99,999,999.99 con máximo 2 decimales." });
       }
       if (!req.usuario.hospitalId) {
         return res.status(403).json({ error: "La cuenta no está asociada a un hospital" });

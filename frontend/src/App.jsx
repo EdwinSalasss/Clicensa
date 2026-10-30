@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -22,6 +23,53 @@ function RutaPrivada({ rolesPermitidos, children }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    function mostrarErrorDeCampo(event) {
+      const campo = event.target;
+      if (!(campo instanceof HTMLInputElement || campo instanceof HTMLSelectElement || campo instanceof HTMLTextAreaElement)) return;
+
+      const { validity } = campo;
+      if (validity.valueMissing) {
+        campo.setCustomValidity("Completa este campo.");
+      } else if (validity.typeMismatch && campo.type === "email") {
+        campo.setCustomValidity("Escribe un correo electrónico válido, por ejemplo, nombre@ejemplo.com.");
+      } else if (validity.typeMismatch && campo.type === "url") {
+        campo.setCustomValidity("Escribe una dirección web válida que comience con http:// o https://.");
+      } else if (validity.typeMismatch) {
+        campo.setCustomValidity("El valor ingresado no tiene el formato solicitado.");
+      } else if (validity.patternMismatch) {
+        campo.setCustomValidity(campo.title || "El formato ingresado no es válido. Revisa la indicación del campo.");
+      } else if (validity.tooShort) {
+        campo.setCustomValidity(`Escribe al menos ${campo.minLength} caracteres.`);
+      } else if (validity.tooLong) {
+        campo.setCustomValidity(`Escribe como máximo ${campo.maxLength} caracteres.`);
+      } else if (validity.rangeUnderflow) {
+        campo.setCustomValidity(`El valor debe ser igual o mayor que ${campo.min}.`);
+      } else if (validity.rangeOverflow) {
+        campo.setCustomValidity(`El valor debe ser igual o menor que ${campo.max}.`);
+      } else if (validity.stepMismatch) {
+        campo.setCustomValidity("El valor no coincide con los incrementos permitidos para este campo.");
+      } else if (validity.badInput) {
+        campo.setCustomValidity("Ingresa un valor con el formato indicado.");
+      }
+    }
+    function limpiarErrorDeCampo(event) {
+      const campo = event.target;
+      if (campo instanceof HTMLInputElement || campo instanceof HTMLSelectElement || campo instanceof HTMLTextAreaElement) {
+        campo.setCustomValidity("");
+      }
+    }
+
+    document.addEventListener("invalid", mostrarErrorDeCampo, true);
+    document.addEventListener("input", limpiarErrorDeCampo, true);
+    document.addEventListener("change", limpiarErrorDeCampo, true);
+    return () => {
+      document.removeEventListener("invalid", mostrarErrorDeCampo, true);
+      document.removeEventListener("input", limpiarErrorDeCampo, true);
+      document.removeEventListener("change", limpiarErrorDeCampo, true);
+    };
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Home />} />

@@ -76,13 +76,14 @@ export default function SystemAdminPanel() {
             <h3>Registrar hospital</h3>
             <form onSubmit={crearHospital}>
               <label htmlFor="hospital-nombre">NOMBRE</label>
-              <input id="hospital-nombre" value={hospital.nombre} onChange={(e) => setHospital({ ...hospital, nombre: e.target.value })} required />
+              <input id="hospital-nombre" value={hospital.nombre} onChange={(e) => setHospital({ ...hospital, nombre: e.target.value })} maxLength="120" pattern=".*\S.*" title="Ingresa un nombre que no esté vacío ni contenga solo espacios." required />
               <label htmlFor="hospital-direccion">DIRECCIÓN</label>
-              <input id="hospital-direccion" value={hospital.direccion} onChange={(e) => setHospital({ ...hospital, direccion: e.target.value })} required />
+              <input id="hospital-direccion" value={hospital.direccion} onChange={(e) => setHospital({ ...hospital, direccion: e.target.value })} maxLength="240" pattern=".*\S.*" title="Ingresa una dirección que no esté vacía ni contenga solo espacios." required />
               <label htmlFor="hospital-telefono">TELÉFONO</label>
-              <input id="hospital-telefono" value={hospital.telefono} onChange={(e) => setHospital({ ...hospital, telefono: e.target.value })} required />
+              <input id="hospital-telefono" type="tel" inputMode="tel" pattern="(?=(?:\D*\d){7,15}\D*$)\+?(?:\d|\x28)[\d\x20\x28\x29\x2d]*(?:\d|\x29)" title="Escribe entre 7 y 15 dígitos; puedes usar +, espacios, guiones o paréntesis." maxLength="25" value={hospital.telefono} onChange={(e) => setHospital({ ...hospital, telefono: e.target.value })} required />
+              <p className="field-hint">Incluye entre 7 y 15 dígitos. Puedes agregar el código del país, espacios, guiones o paréntesis.</p>
               <label htmlFor="hospital-logo">LOGO DEL HOSPITAL · URL</label>
-              <input id="hospital-logo" type="url" value={hospital.logoUrl.startsWith("data:") ? "" : hospital.logoUrl} onChange={(e) => setHospital({ ...hospital, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
+              <input id="hospital-logo" type="url" pattern="https?://.+" title="Usa una dirección que comience con http:// o https://." maxLength="2048" value={hospital.logoUrl.startsWith("data:") ? "" : hospital.logoUrl} onChange={(e) => setHospital({ ...hospital, logoUrl: e.target.value })} placeholder="https://ejemplo.com/logo.png" />
               <label htmlFor="hospital-logo-archivo">O SELECCIONA UN ARCHIVO DE LOGO</label>
               <input id="hospital-logo-archivo" type="file" accept="image/png,image/jpeg,image/webp" onChange={seleccionarLogo} />
               <p className="field-hint">Opcional. PNG, JPEG o WebP de hasta 512 KB, o un enlace directo.</p>
@@ -115,11 +116,11 @@ export default function SystemAdminPanel() {
               </div>
               {!hospitales.length && <p className="muted">Primero registra un hospital.</p>}
               <label htmlFor="personal-nombre">NOMBRE COMPLETO</label>
-              <input id="personal-nombre" value={personal.nombre} onChange={(e) => setPersonal({ ...personal, nombre: e.target.value })} required />
+              <input id="personal-nombre" value={personal.nombre} onChange={(e) => setPersonal({ ...personal, nombre: e.target.value })} maxLength="120" pattern=".*\S.*" title="Ingresa un nombre que no esté vacío ni contenga solo espacios." required />
               <label htmlFor="personal-correo">CORREO</label>
-              <input id="personal-correo" type="email" value={personal.correo} onChange={(e) => setPersonal({ ...personal, correo: e.target.value })} required />
+              <input id="personal-correo" type="email" maxLength="254" value={personal.correo} onChange={(e) => setPersonal({ ...personal, correo: e.target.value })} required />
               <label htmlFor="personal-password">CONTRASEÑA INICIAL</label>
-              <input id="personal-password" type="password" minLength="8" value={personal.password} onChange={(e) => setPersonal({ ...personal, password: e.target.value })} required />
+              <input id="personal-password" type="password" minLength="8" maxLength="72" autoComplete="new-password" value={personal.password} onChange={(e) => setPersonal({ ...personal, password: e.target.value })} title="Usa al menos 8 caracteres y evita superar 72 bytes." required />
               <button className="secondary block" type="submit" disabled={!personal.hospitalId}>Crear cuenta administrativa</button>
             </form>
           </section>

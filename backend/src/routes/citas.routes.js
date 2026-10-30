@@ -143,16 +143,16 @@ router.post("/", requiereAuth, async (req, res) => {
       !Number.isInteger(medicoIdNum) || medicoIdNum <= 0 ||
       !fechaValida(fecha) || minutos(hora) === null
     ) {
-      return res.status(400).json({ error: "medicoId, fecha válida y hora (HH:mm) son requeridos" });
+      return res.status(400).json({ error: "Selecciona un médico y proporciona una fecha y hora válidas (HH:mm)." });
     }
     if (!Number.isInteger(clinicId) || clinicId <= 0) {
-      return res.status(400).json({ error: "hospitalId debe ser un entero positivo" });
+      return res.status(400).json({ error: "Selecciona un hospital válido." });
     }
     if (!fechaHoraFutura(fecha, hora)) {
       return res.status(400).json({ error: "La cita debe programarse para una fecha y hora futuras" });
     }
     if (servicioIdNum !== null && (!Number.isInteger(servicioIdNum) || servicioIdNum <= 0)) {
-      return res.status(400).json({ error: "servicioId debe ser un entero positivo" });
+      return res.status(400).json({ error: "Selecciona un servicio válido." });
     }
     if (!["PACIENTE", "MEDICO"].includes(req.usuario.rol)) {
       return res.status(403).json({ error: "Solo pacientes y médicos pueden agendar citas" });
@@ -167,7 +167,7 @@ router.post("/", requiereAuth, async (req, res) => {
       if (idSolicitado !== undefined) {
         pacienteId = Number(idSolicitado);
         if (!Number.isInteger(pacienteId) || pacienteId <= 0) {
-          return res.status(400).json({ error: "pacienteId debe ser un entero positivo" });
+          return res.status(400).json({ error: "Selecciona un paciente válido." });
         }
       } else if ((typeof correo === "string" && correo.trim()) || (typeof cedula === "string" && cedula.trim())) {
         const paciente = await prisma.usuario.findFirst({
@@ -181,7 +181,7 @@ router.post("/", requiereAuth, async (req, res) => {
         if (!paciente) return res.status(404).json({ error: "No se encontró el paciente" });
         pacienteId = paciente.id;
       } else {
-        return res.status(400).json({ error: "Indique pacienteId, correo o cédula del paciente" });
+        return res.status(400).json({ error: "Busca al paciente por correo electrónico o cédula." });
       }
     }
 
@@ -515,7 +515,7 @@ router.put(
       const { aprobar } = req.body || {};
       if (!Number.isInteger(id) || id <= 0) return res.status(404).json({ error: "Cita no encontrada" });
       if (typeof aprobar !== "boolean") {
-        return res.status(400).json({ error: "aprobar debe ser true o false" });
+        return res.status(400).json({ error: "Indica si apruebas o rechazas la solicitud de cambio." });
       }
       const cita = await prisma.cita.findUnique({
         where: { id },
@@ -652,7 +652,7 @@ router.put(
       );
       const estado = typeof req.body?.estado === "string" ? req.body.estado.toUpperCase() : "";
       if (!ESTADOS_VALIDOS.includes(estado)) {
-        return res.status(400).json({ error: "estado debe ser CONFIRMADA, CANCELADA o ATENDIDA" });
+        return res.status(400).json({ error: "Selecciona un estado permitido: confirmada, cancelada o atendida." });
       }
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "id de cita inválido" });
@@ -754,7 +754,7 @@ router.get("/medico", requiereAuth, requiereRol("MEDICO"), async (req, res) => {
   try {
     await marcarCitasVencidas({ medicoId: req.usuario.medicoId });
     const { fecha } = req.query;
-    if (!fechaValida(fecha)) return res.status(400).json({ error: "fecha válida es requerida" });
+    if (!fechaValida(fecha)) return res.status(400).json({ error: "Selecciona una fecha válida con formato AAAA-MM-DD." });
     if (!req.usuario.medicoId) return res.status(403).json({ error: "La cuenta no tiene una agenda asociada" });
     const agenda = await prisma.cita.findMany({
       where: { medicoId: req.usuario.medicoId, fecha },
@@ -788,7 +788,7 @@ router.get(
       );
       const { fecha } = req.query;
       if (fecha !== undefined && !fechaValida(fecha)) {
-        return res.status(400).json({ error: "fecha debe tener formato YYYY-MM-DD" });
+        return res.status(400).json({ error: "La fecha debe usar el formato AAAA-MM-DD." });
       }
       if (req.usuario.rol === "PERSONAL_ADMINISTRATIVO" && !req.usuario.hospitalId) {
         return res.status(403).json({ error: "La cuenta administrativa no está asociada a un hospital" });

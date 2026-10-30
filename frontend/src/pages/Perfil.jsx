@@ -126,21 +126,21 @@ export default function Perfil() {
                 <div className="form-row">
                   <div>
                     <label htmlFor="perfil-nombre">NOMBRE COMPLETO</label>
-                    <input id="perfil-nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} required autoComplete="name" />
+                    <input id="perfil-nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} maxLength="120" pattern=".*\S.*" title="Ingresa un nombre que no esté vacío ni contenga solo espacios." required autoComplete="name" />
                   </div>
                   <div>
                     <label htmlFor="perfil-correo">CORREO ELECTRÓNICO</label>
-                    <input id="perfil-correo" type="email" value={form.correo} onChange={(e) => setForm({ ...form, correo: e.target.value })} required autoComplete="email" />
+                    <input id="perfil-correo" type="email" maxLength="254" value={form.correo} onChange={(e) => setForm({ ...form, correo: e.target.value })} required autoComplete="email" />
                   </div>
                 </div>
                 {esPaciente && (
                   <div>
                     <label htmlFor="perfil-cedula">CÉDULA</label>
-                    <input id="perfil-cedula" value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} required autoComplete="off" />
+                    <input id="perfil-cedula" value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} maxLength="32" required autoComplete="off" />
                   </div>
                 )}
                 <label htmlFor="perfil-foto">IMAGEN DE PERFIL · URL</label>
-                <input id="perfil-foto" type="url" value={form.fotoUrl.startsWith("data:") ? "" : form.fotoUrl} onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })} placeholder="https://ejemplo.com/mi-foto.jpg" />
+                <input id="perfil-foto" type="url" pattern="https?://.+" title="Usa una dirección que comience con http:// o https://." maxLength="2048" value={form.fotoUrl.startsWith("data:") ? "" : form.fotoUrl} onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })} placeholder="https://ejemplo.com/mi-foto.jpg" />
                 <label htmlFor="perfil-archivo">O SELECCIONA UNA IMAGEN</label>
                 <input id="perfil-archivo" type="file" accept="image/png,image/jpeg,image/webp" onChange={seleccionarFoto} />
                 <p className="field-hint">Acepta PNG, JPEG o WebP de hasta 512 KB. Puedes dejar ambos campos vacíos para quitar la imagen.</p>
@@ -152,7 +152,7 @@ export default function Perfil() {
                   </div>
                   <div>
                     <label htmlFor="perfil-password">NUEVA CONTRASEÑA</label>
-                    <input id="perfil-password" type="password" minLength="8" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} autoComplete="new-password" />
+                    <input id="perfil-password" type="password" minLength="8" maxLength="72" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} title="Usa al menos 8 caracteres y evita superar 72 bytes." />
                   </div>
                 </div>
                 <button className="button-primary" type="submit" disabled={guardando}>

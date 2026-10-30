@@ -43,6 +43,9 @@ export default function Registro() {
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           autoComplete="name"
+          maxLength="120"
+          pattern=".*\S.*"
+          title="Ingresa un nombre que no esté vacío ni contenga solo espacios."
           required
         />
         <label htmlFor="cedula">Cédula</label>
@@ -52,6 +55,7 @@ export default function Registro() {
           value={cedula}
           onChange={(e) => setCedula(e.target.value)}
           autoComplete="off"
+          maxLength="32"
           required
         />
         <label htmlFor="correo">Correo electrónico</label>
@@ -61,6 +65,7 @@ export default function Registro() {
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
           autoComplete="email"
+          maxLength="254"
           required
         />
         <label htmlFor="password">Contraseña</label>
@@ -68,16 +73,18 @@ export default function Registro() {
           id="password"
           type="password"
           minLength="8"
+          maxLength="72"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
+          title="Usa al menos 8 caracteres y evita superar 72 bytes."
           required
         />
         <button type="submit" className="block" disabled={cargando}>
           {cargando ? "Creando cuenta..." : "CREAR CUENTA"}
         </button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
     </div>
   );
 }

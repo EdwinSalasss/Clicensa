@@ -30,10 +30,10 @@ router.get("/disponibles", async (req, res) => {
     const { fecha } = req.query;
     const servicioId = req.query.servicioId === undefined ? null : Number(req.query.servicioId);
     if (!Number.isInteger(medicoId) || medicoId <= 0 || !fechaValida(fecha)) {
-      return res.status(400).json({ error: "medicoId y una fecha válida (YYYY-MM-DD) son requeridos" });
+      return res.status(400).json({ error: "Selecciona un médico y una fecha válida con formato AAAA-MM-DD." });
     }
     if (servicioId !== null && (!Number.isInteger(servicioId) || servicioId <= 0)) {
-      return res.status(400).json({ error: "servicioId debe ser un entero positivo" });
+      return res.status(400).json({ error: "Selecciona un servicio válido." });
     }
     const medico = await prisma.medico.findUnique({
       where: { id: medicoId },
@@ -75,12 +75,12 @@ router.get("/calendario", async (req, res) => {
       !fechaValida(desde) || !fechaValida(hasta)
     ) {
       return res.status(400).json({
-        error: "medicoId, servicioId y un rango válido (desde/hasta en YYYY-MM-DD) son requeridos",
+        error: "Selecciona un médico, un servicio y un periodo válido con fechas en formato AAAA-MM-DD.",
       });
     }
     const dias = (new Date(`${hasta}T00:00:00.000Z`) - new Date(`${desde}T00:00:00.000Z`)) / 86_400_000;
     if (dias < 0 || dias > 30) {
-      return res.status(400).json({ error: "El calendario debe abarcar entre 1 y 31 días" });
+      return res.status(400).json({ error: "El periodo seleccionado debe abarcar entre 1 y 31 días." });
     }
 
     const [medico, servicio] = await Promise.all([
@@ -121,7 +121,7 @@ router.post("/", requiereAuth, requiereRol("MEDICO"), async (req, res) => {
     if (!req.usuario.medicoId) return res.status(400).json({ error: "La cuenta no tiene un médico asociado" });
     const { disponibilidad } = req.body || {};
     if (!Array.isArray(disponibilidad)) {
-      return res.status(400).json({ error: "disponibilidad debe ser una lista de bloques semanales" });
+      return res.status(400).json({ error: "Agrega bloques de horario en formato de día y hora de inicio y fin." });
     }
     const validos = disponibilidad.every((bloque) =>
       Number.isInteger(bloque?.diaSemana) &&
@@ -131,7 +131,7 @@ router.post("/", requiereAuth, requiereRol("MEDICO"), async (req, res) => {
       minutos(bloque.horaFin) !== null &&
       minutos(bloque.horaInicio) < minutos(bloque.horaFin)
     );
-    if (!validos) return res.status(400).json({ error: "Cada bloque requiere día (0-6) y horas válidas con fin posterior al inicio" });
+    if (!validos) return res.status(400).json({ error: "Cada bloque debe tener un día de la semana y horas válidas; la hora de fin debe ser posterior al inicio." });
     const porDia = new Map();
     for (const bloque of disponibilidad) {
       const dia = porDia.get(bloque.diaSemana) || [];

@@ -124,11 +124,11 @@ export default function AdminPanel() {
             <h3>Catálogo de servicios</h3>
             <form onSubmit={crearServicio}>
               <label htmlFor="servicio-nombre">NOMBRE DEL SERVICIO</label>
-              <input id="servicio-nombre" value={nuevoServicio.nombre} onChange={(e) => setNuevoServicio({ ...nuevoServicio, nombre: e.target.value })} required />
+              <input id="servicio-nombre" value={nuevoServicio.nombre} onChange={(e) => setNuevoServicio({ ...nuevoServicio, nombre: e.target.value })} maxLength="100" pattern=".*\S.*" title="Ingresa un nombre que no esté vacío ni contenga solo espacios." required />
               <label htmlFor="servicio-duracion">DURACIÓN (MINUTOS)</label>
-              <input id="servicio-duracion" type="number" min="5" step="5" value={nuevoServicio.duracionMin} onChange={(e) => setNuevoServicio({ ...nuevoServicio, duracionMin: e.target.value })} required />
+              <input id="servicio-duracion" type="number" min="5" step="5" value={nuevoServicio.duracionMin} onChange={(e) => setNuevoServicio({ ...nuevoServicio, duracionMin: e.target.value })} title="Usa múltiplos de 5 minutos (por ejemplo: 15, 30 o 45)." required />
               <label htmlFor="servicio-precio">PRECIO</label>
-              <input id="servicio-precio" type="number" min="0" step="0.01" value={nuevoServicio.precio} onChange={(e) => setNuevoServicio({ ...nuevoServicio, precio: e.target.value })} required />
+              <input id="servicio-precio" type="number" min="0" max="99999999.99" step="0.01" value={nuevoServicio.precio} onChange={(e) => setNuevoServicio({ ...nuevoServicio, precio: e.target.value })} required />
               <button className="secondary block" type="submit">Agregar servicio</button>
             </form>
             {servicios.length ? (
@@ -143,11 +143,11 @@ export default function AdminPanel() {
             <h3>Gestión de médicos</h3>
             <form onSubmit={invitarMedico}>
               <label htmlFor="medico-licencia">CÉDULA / LICENCIA MÉDICA</label>
-              <input id="medico-licencia" value={nuevoMedico.licenciaMedica} onChange={(e) => setNuevoMedico({ ...nuevoMedico, licenciaMedica: e.target.value })} required />
+              <input id="medico-licencia" value={nuevoMedico.licenciaMedica} onChange={(e) => setNuevoMedico({ ...nuevoMedico, licenciaMedica: e.target.value })} maxLength="80" pattern=".*\S.*" title="Ingresa una licencia médica que no esté vacía ni contenga solo espacios." required />
               <label htmlFor="medico-correo">CORREO</label>
-              <input id="medico-correo" type="email" value={nuevoMedico.correo} onChange={(e) => setNuevoMedico({ ...nuevoMedico, correo: e.target.value })} required />
+              <input id="medico-correo" type="email" maxLength="254" value={nuevoMedico.correo} onChange={(e) => setNuevoMedico({ ...nuevoMedico, correo: e.target.value })} required />
               <label htmlFor="medico-especialidad">ESPECIALIDAD</label>
-              <input id="medico-especialidad" value={nuevoMedico.especialidad} onChange={(e) => setNuevoMedico({ ...nuevoMedico, especialidad: e.target.value })} required />
+              <input id="medico-especialidad" value={nuevoMedico.especialidad} onChange={(e) => setNuevoMedico({ ...nuevoMedico, especialidad: e.target.value })} maxLength="100" pattern=".*\S.*" title="Ingresa una especialidad que no esté vacía ni contenga solo espacios." required />
               <button className="block" type="submit">+ NUEVO MÉDICO · ENVIAR INVITACIÓN</button>
             </form>
             {medicos.length ? (

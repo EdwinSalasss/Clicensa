@@ -50,10 +50,12 @@ paths:
               type: object
               required: [nombre, direccion, telefono]
               properties:
-                nombre: { type: string }
-                direccion: { type: string }
-                telefono: { type: string }
-                logoUrl: { type: string, format: uri }
+                nombre: { type: string, maxLength: 120 }
+                direccion: { type: string, maxLength: 240 }
+                telefono:
+                  type: string
+                  description: Entre 7 y 15 dígitos; permite +, espacios, guiones y paréntesis
+                logoUrl: { type: string, format: uri, maxLength: 2048 }
       responses:
         "201": { description: Hospital creado }
         "403": { description: Rol no autorizado }
@@ -72,9 +74,13 @@ paths:
               required: [hospitalId, nombre, correo, password]
               properties:
                 hospitalId: { type: integer }
-                nombre: { type: string }
-                correo: { type: string, format: email }
-                password: { type: string, minLength: 8 }
+                nombre: { type: string, maxLength: 120 }
+                correo: { type: string, format: email, maxLength: 254 }
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  description: Hasta 72 bytes UTF-8 por el algoritmo de hash
       responses:
         "201": { description: Cuenta administrativa creada }
         "404": { description: Hospital no encontrado }
@@ -102,9 +108,9 @@ paths:
               type: object
               required: [nombre, duracionMin, precio]
               properties:
-                nombre: { type: string }
-                duracionMin: { type: integer, minimum: 5 }
-                precio: { type: number, minimum: 0 }
+                nombre: { type: string, maxLength: 100 }
+                duracionMin: { type: integer, minimum: 5, multipleOf: 5 }
+                precio: { type: number, minimum: 0, maximum: 99999999.99, multipleOf: 0.01 }
       responses:
         "201": { description: Servicio creado }
         "403": { description: Rol no autorizado }
@@ -236,9 +242,9 @@ paths:
               type: object
               required: [licenciaMedica, correo, especialidad]
               properties:
-                licenciaMedica: { type: string }
-                correo: { type: string, format: email }
-                especialidad: { type: string }
+                licenciaMedica: { type: string, maxLength: 80 }
+                correo: { type: string, format: email, maxLength: 254 }
+                especialidad: { type: string, maxLength: 100 }
       responses:
         "201": { description: Invitación enviada }
         "409": { description: El correo o la licencia ya existe }

@@ -135,7 +135,7 @@ export default function GestionMedicos() {
         </div>
 
         {mensaje && <p className="success" role="status">{mensaje}</p>}
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         {cargando ? (
           <p>Cargando...</p>
         ) : medicos.length === 0 ? (

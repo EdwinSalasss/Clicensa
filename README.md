@@ -211,9 +211,13 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
   atendidas.
 - Los perfiles permiten actualizar nombre, correo, imagen mediante archivo o URL y
   contraseña con verificación de la contraseña actual. La cédula es obligatoria
-  al crear y actualizar una cuenta de paciente; las contraseñas nuevas requieren
-  al menos ocho caracteres. Los archivos de imagen admiten PNG, JPEG y WebP
-  hasta 512 KB.
+  al crear y actualizar una cuenta de paciente. Los formularios validan el correo,
+  las fechas, horas y números según su formato; los nombres, correos, direcciones,
+  teléfonos, duraciones y precios tienen límites coincidentes con la API. Las
+  contraseñas nuevas requieren al menos ocho caracteres y no más de 72 bytes UTF-8.
+  Los archivos de imagen admiten PNG, JPEG y WebP hasta 512 KB. Los errores de
+  validación y conexión se muestran en español para que el usuario pueda corregir
+  los datos y volver a editarlos.
 - Cada cuenta puede activar el modo oscuro desde la barra superior. La
   navegación, formularios, selector visual de hospitales, tablas y paneles se
   adaptan a pantallas de escritorio, tablet y teléfono.
