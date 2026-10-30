@@ -52,6 +52,7 @@ model Usuario {
   perfilMedico PerfilMedico?
   citas        Cita[]
   activadoEn   DateTime?
+  activo       Boolean       @default(true)
   creadoEn     DateTime      @default(now())
 
   @@index([hospitalId, rol])

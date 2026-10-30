@@ -126,6 +126,8 @@ La colección de pruebas para importar en Postman está en
 | `GET`, `POST` | `/api/hospital/servicios` | Público para consulta; personal administrativo para crear |
 | `GET` | `/api/medicos` | Público |
 | `POST` | `/api/medicos/invitar` | Personal administrativo |
+| `GET` | `/api/medicos/administracion` | Personal administrativo del hospital |
+| `PATCH` | `/api/medicos/:id/estado` | Personal administrativo; bloquear cancela futuras citas y notifica a los pacientes |
 | `GET`, `PUT` | `/api/medicos/perfil` | Médico; PUT también acepta un token de activación |
 | `POST` | `/api/medicos` | Personal administrativo (compatibilidad) |
 | `POST` | `/api/horarios` | Médico; reemplaza disponibilidad semanal |
@@ -142,6 +144,7 @@ La colección de pruebas para importar en Postman está en
 | `GET` | `/api/citas/medico` | Médico autenticado |
 | `GET` | `/api/citas/proximas` | Paciente o médico; solo muestra sus propias citas |
 | `GET` | `/api/citas/todas` | Personal del hospital o administrador del sistema |
+| `GET` | `/api/reportes?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` | Personal administrativo (su hospital) o médico (su agenda) |
 
 ## Cuentas de prueba
 
@@ -178,6 +181,11 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
   su contraseña desde el enlace de invitación enviado por correo, actualiza su
   disponibilidad semanal, consulta su agenda y asigna citas buscando pacientes
   por correo o cédula.
+- El personal administrativo puede bloquear o reactivar la cuenta de un médico
+  de su hospital. Bloquearla invalida sus sesiones activas, la retira de nuevas
+  reservas, cancela sus citas futuras pendientes o confirmadas y envía un correo
+  a cada paciente afectado. Al reactivar la cuenta no se restauran las citas
+  canceladas.
 - El paciente selecciona hospital, servicio, médico y horario en un flujo de
   tres pasos. Solo se muestran médicos activos de la sede seleccionada; el
   calendario consulta en bloque la disponibilidad del mes, resalta los días con
@@ -211,6 +219,11 @@ es únicamente para desarrollo local; reemplázala antes de desplegar.
   adaptan a pantallas de escritorio, tablet y teléfono.
 - La campana de notificaciones solo aparece para pacientes y médicos y muestra
   sus próximas citas y solicitudes de reprogramación pendientes.
+- El personal administrativo y los médicos pueden consultar reportes limitados
+  a su hospital o agenda. Permiten filtrar por fechas, revisar conteos por
+  estado e ingresos estimados, y exportar el detalle a CSV o PDF. Los ingresos
+  realizados se calculan con citas atendidas; los pendientes y confirmados se
+  muestran por separado como ingresos por atender.
 - El administrador del sistema puede asociar un logo a cada hospital. Los
   hospitales se muestran con su logo en el flujo de reserva y en el panel. Se
   puede cargar un archivo PNG, JPEG o WebP de hasta 512 KB o proporcionar una

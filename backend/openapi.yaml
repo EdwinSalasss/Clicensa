@@ -14,6 +14,7 @@ tags:
   - name: Medicos
   - name: Horarios
   - name: Citas
+  - name: Reportes
 
 paths:
   /hospitales:
@@ -242,6 +243,44 @@ paths:
         "201": { description: Invitación enviada }
         "409": { description: El correo o la licencia ya existe }
         "503": { description: Configuración de correo incompleta }
+
+  /medicos/administracion:
+    get:
+      tags: [Medicos]
+      summary: Listar médicos y estado de sus cuentas en el hospital administrativo
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Médicos del hospital con estado de activación y horarios }
+        "401": { description: Falta autenticación o la cuenta fue desactivada }
+        "403": { description: Se requiere personal administrativo del hospital }
+
+  /medicos/{id}/estado:
+    patch:
+      tags: [Medicos]
+      summary: Activar o bloquear una cuenta médica
+      description: Al bloquear, cancela citas futuras pendientes o confirmadas y notifica a los pacientes.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activo]
+              properties:
+                activo: { type: boolean }
+      responses:
+        "200": { description: Estado actualizado con cancelaciones y notificaciones resultantes }
+        "400": { description: Identificador o estado inválido }
+        "401": { description: Falta autenticación }
+        "403": { description: Se requiere personal administrativo del hospital }
+        "404": { description: Médico no encontrado en el hospital }
+        "409": { description: El médico no tiene una cuenta administrable }
 
   /medicos/perfil:
     get:
@@ -656,6 +695,27 @@ paths:
         "200": { description: Citas visibles para el rol autenticado }
         "401": { description: Falta autenticación }
         "403": { description: Se requiere rol administrativo }
+
+  /reportes:
+    get:
+      tags: [Reportes]
+      summary: Consultar citas e ingresos estimados por periodo
+      description: Personal administrativo ve su hospital y el médico solo ve su propia agenda. Los ingresos realizados consideran citas atendidas; los ingresos por atender consideran pendientes y confirmadas.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: desde
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: hasta
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: Resumen por estado, estimados de ingresos y detalle de citas }
+        "400": { description: Fechas inválidas o rango mayor a 366 días }
+        "401": { description: Falta autenticación }
+        "403": { description: Solo personal administrativo y médicos pueden consultar reportes }
 
 components:
   securitySchemes:

@@ -57,12 +57,15 @@ async function validarReserva({ medicoId, hospitalId, servicioId, fecha, hora, e
       where: { id: medicoId },
       include: {
         disponibilidad: true,
-        usuario: { select: { correo: true, activadoEn: true } },
+        usuario: { select: { id: true, correo: true, activo: true, activadoEn: true } },
       },
     }),
     prisma.tipoServicio.findUnique({ where: { id: servicioId } }),
   ]);
   if (!medico) return { error: "Médico no encontrado", status: 404 };
+  if (!medico.usuario?.activo || !medico.usuario.activadoEn) {
+    return { error: "El médico no está activo para recibir citas", status: 403 };
+  }
   if (!servicio || servicio.hospitalId !== hospitalId || medico.hospitalId !== hospitalId) {
     return { error: "El médico y el servicio deben pertenecer al hospital seleccionado", status: 400 };
   }
@@ -212,7 +215,7 @@ router.post("/", requiereAuth, async (req, res) => {
     if (validacion.error) return res.status(validacion.status).json({ error: validacion.error });
     if (
       req.usuario.rol === "PACIENTE" &&
-      (!validacion.medico.usuario?.correo || !validacion.medico.usuario.activadoEn)
+      !validacion.medico.usuario?.correo
     ) {
       return res.status(400).json({ error: "El médico seleccionado todavía no tiene una cuenta activa" });
     }
@@ -220,6 +223,17 @@ router.post("/", requiereAuth, async (req, res) => {
     let nueva;
     try {
       nueva = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "usuarios" WHERE "medicoId" = ${medicoIdNum} FOR UPDATE`;
+        const cuentaMedico = await tx.usuario.findFirst({
+          where: {
+            medicoId: medicoIdNum,
+            activo: true,
+            activadoEn: { not: null },
+          },
+          select: { id: true },
+        });
+        if (!cuentaMedico) return { error: "El médico fue desactivado; seleccione otro médico." };
+
         const [otrasCitas, solicitudes] = await Promise.all([
           tx.cita.findMany({
             where: {
@@ -275,6 +289,7 @@ router.post("/", requiereAuth, async (req, res) => {
       }
       throw err;
     }
+    if (nueva?.error) return res.status(403).json({ error: nueva.error });
     if (!nueva) return res.status(409).json({ error: "El horario ya fue reservado" });
 
     const notificacion = await enviarAvisoCita(nueva, paciente, validacion.medico, nueva.hospital);

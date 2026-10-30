@@ -7,10 +7,6 @@ export async function marcarCitasVencidas(filtro = {}, cliente = prisma, ahora =
     ...filtro,
     fechaHora: { lt: ahora },
     estado: { in: ESTADOS_ACTIVOS },
-    OR: [
-      { estadoReprogramacion: null },
-      { estadoReprogramacion: { not: "PENDIENTE" } },
-    ],
   };
   const citas = await cliente.cita.findMany({
     where,

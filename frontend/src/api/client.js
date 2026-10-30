@@ -1,3 +1,5 @@
+import { cerrarSesion } from "./session.js";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 function getToken() {
@@ -15,6 +17,10 @@ async function request(path, options = {}) {
     },
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && token && !path.startsWith("/auth/login")) {
+    cerrarSesion();
+    window.dispatchEvent(new Event("clisensa:session-expired"));
+  }
   if (!res.ok) throw new Error(data.error || "Error en la solicitud");
   return data;
 }
@@ -41,6 +47,12 @@ export const api = {
     request("/hospital/servicios", { method: "POST", body: JSON.stringify(datos) }),
   invitarMedico: (datos) =>
     request("/medicos/invitar", { method: "POST", body: JSON.stringify(datos) }),
+  medicosAdministracion: () => request("/medicos/administracion"),
+  actualizarEstadoMedico: (medicoId, activo) =>
+    request(`/medicos/${medicoId}/estado`, {
+      method: "PATCH",
+      body: JSON.stringify({ activo }),
+    }),
   medicos: (especialidad, hospitalId, filtros = {}) => {
     const params = new URLSearchParams();
     if (especialidad) params.set("especialidad", especialidad);
@@ -98,6 +110,10 @@ export const api = {
   cambiarEstadoCita: (id, estado) =>
     request(`/citas/${id}/estado`, { method: "PUT", body: JSON.stringify({ estado }) }),
   proximasCitas: () => request("/citas/proximas"),
+  reporteCitas: (desde, hasta) => {
+    const params = new URLSearchParams({ desde, hasta });
+    return request(`/reportes?${params}`);
+  },
 
   // Administrativo
   citasTodas: (fecha) => request(`/citas/todas${fecha ? `?fecha=${fecha}` : ""}`),

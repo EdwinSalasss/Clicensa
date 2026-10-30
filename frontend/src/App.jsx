@@ -6,10 +6,10 @@ import AgendarCita from "./pages/AgendarCita.jsx";
 import HistorialCitas from "./pages/HistorialCitas.jsx";
 import MedicoPanel from "./pages/MedicoPanel.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
-import GestionMedicos from "./pages/GestionMedicos.jsx";
 import Perfil from "./pages/Perfil.jsx";
 import SystemAdminPanel from "./pages/SystemAdminPanel.jsx";
 import MedicoActivacion from "./pages/MedicoActivacion.jsx";
+import Reportes from "./pages/Reportes.jsx";
 import { estaAutenticado, getUsuario } from "./api/session.js";
 
 function RutaPrivada({ rolesPermitidos, children }) {
@@ -62,6 +62,19 @@ export default function App() {
           </RutaPrivada>
         }
       />
+      <Route
+        path="/reportes"
+        element={
+          <RutaPrivada rolesPermitidos={[
+            "PERSONAL_ADMINISTRATIVO",
+            "MEDICO",
+            "administrativo",
+            "medico",
+          ]}>
+            <Reportes />
+          </RutaPrivada>
+        }
+      />
 
       <Route
         path="/admin"
@@ -71,14 +84,7 @@ export default function App() {
           </RutaPrivada>
         }
       />
-      <Route
-        path="/admin/medicos"
-        element={
-          <RutaPrivada rolesPermitidos={["PERSONAL_ADMINISTRATIVO", "administrativo"]}>
-            <GestionMedicos />
-          </RutaPrivada>
-        }
-      />
+      <Route path="/admin/medicos" element={<Navigate to="/admin" replace />} />
       <Route
         path="/sistema"
         element={

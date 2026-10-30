@@ -37,9 +37,15 @@ router.get("/disponibles", async (req, res) => {
     }
     const medico = await prisma.medico.findUnique({
       where: { id: medicoId },
-      include: { disponibilidad: true },
+      include: {
+        disponibilidad: true,
+        usuario: { select: { activo: true, activadoEn: true } },
+      },
     });
     if (!medico) return res.status(404).json({ error: "Médico no encontrado" });
+    if (!medico.usuario?.activo || !medico.usuario.activadoEn) {
+      return res.status(403).json({ error: "El médico no está activo para recibir citas" });
+    }
     const servicio = servicioId
       ? await prisma.tipoServicio.findUnique({ where: { id: servicioId } })
       : await prisma.tipoServicio.findFirst({
@@ -82,7 +88,7 @@ router.get("/calendario", async (req, res) => {
         where: { id: medicoId },
         include: {
           disponibilidad: true,
-          usuario: { select: { activadoEn: true } },
+          usuario: { select: { activo: true, activadoEn: true } },
         },
       }),
       prisma.tipoServicio.findUnique({ where: { id: servicioId } }),
@@ -91,7 +97,7 @@ router.get("/calendario", async (req, res) => {
     if (!servicio || servicio.hospitalId !== medico.hospitalId) {
       return res.status(400).json({ error: "El servicio no pertenece al hospital del médico" });
     }
-    if (!medico.usuario?.activadoEn) {
+    if (!medico.usuario?.activo || !medico.usuario.activadoEn) {
       return res.status(403).json({ error: "El médico seleccionado todavía no ha activado su cuenta" });
     }
 

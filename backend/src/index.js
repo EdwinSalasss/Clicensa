@@ -16,6 +16,7 @@ import citasRoutes from "./routes/citas.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import hospitalRoutes from "./routes/hospital.routes.js";
 import hospitalesRoutes from "./routes/hospitales.routes.js";
+import reportesRoutes from "./routes/reportes.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -60,6 +61,7 @@ app.use("/api/hospitales", hospitalesRoutes);
 app.use("/api/medicos", medicosRoutes);
 app.use("/api/horarios", horariosRoutes);
 app.use("/api/citas", citasRoutes);
+app.use("/api/reportes", reportesRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: `Ruta no encontrada: ${req.method} ${req.path}` });

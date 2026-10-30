@@ -40,6 +40,9 @@ router.post("/login", async (req, res) => {
     if (!passwordOk) {
       return res.status(401).json({ error: "Credenciales invalidas" });
     }
+    if (!usuario.activo) {
+      return res.status(403).json({ error: "La cuenta está desactivada. Contacta al administrador del hospital." });
+    }
 
     const token = firmarToken(usuario);
     res.json({
@@ -53,6 +56,7 @@ router.post("/login", async (req, res) => {
         hospitalId: usuario.hospitalId || null,
         cedula: usuario.cedula || null,
         fotoUrl: usuario.perfilMedico?.fotoUrl || usuario.fotoUrl || null,
+        activo: usuario.activo,
       },
     });
   } catch (err) {

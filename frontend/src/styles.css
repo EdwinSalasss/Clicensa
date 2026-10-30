@@ -340,6 +340,12 @@ tbody tr:nth-child(even) { background: #F8FAFC; }
 .catalog-list { list-style: none; padding: 0; margin: 14px 0 0; }
 .catalog-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E2E8F0; font-size: 13px; }
 .catalog-list li strong { color: #1E3A8A; }
+.doctor-admin-item { align-items: center; }
+.doctor-admin-item > span { display: grid; gap: 4px; min-width: 0; }
+.doctor-admin-item > span strong { color: #1E3A8A; }
+.doctor-admin-item small { color: #64748B; font-size: 12px; }
+.doctor-admin-item .account-active { color: #047857; font-weight: 700; }
+.doctor-admin-item .account-inactive { color: #B91C1C; font-weight: 700; }
 .text-button { background: transparent; color: #DC2626; padding: 4px 8px; margin: 0; box-shadow: none; letter-spacing: normal; text-transform: none; }
 .text-button:hover { background: #FEF2F2; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
@@ -469,6 +475,18 @@ button.hospital-choice.selected { background: #EFF6FF; border: 2px solid #2563EB
 .notification-list em { grid-column: 2; grid-row: 1; align-self: start; font-style: normal; }
 .notification-footer { display: block; padding-top: 11px; color: #2563EB; border-top: 1px solid #E2E8F0; font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
 .notification-empty, .notification-error { margin: 16px 4px; }
+.report-filters form { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.report-filters label { flex: 1 1 180px; margin: 0; }
+.report-filters button { margin: 0; }
+.report-summary { margin: 18px 0; }
+.report-summary .card h3 { margin-top: 0; font-size: 15px; }
+.report-summary .big { display: block; overflow-wrap: anywhere; }
+.report-details { margin-top: 18px; }
+.report-details .section-heading { align-items: flex-start; }
+.report-details .section-heading h3 { margin-top: 0; }
+.report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-actions button { margin: 0; white-space: nowrap; }
+.report-statuses { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
 
 @media (max-width: 960px) {
   .navbar { align-items: flex-start; flex-wrap: wrap; gap: 10px 16px; }
@@ -492,6 +510,8 @@ button.hospital-choice.selected { background: #EFF6FF; border: 2px solid #2563EB
   .profile-overview h3, .profile-overview p { margin: 3px 0; }
   .profile-form-card { padding: 20px; }
   .section-heading { align-items: flex-start; flex-direction: column; }
+  .report-filters form, .report-actions { width: 100%; }
+  .report-filters button, .report-actions button { flex: 1; }
   .date-field { width: 100%; }
   .direct-appointment-form { grid-template-columns: 1fr; }
   .management-grid, .card-grid { grid-template-columns: 1fr; }
@@ -546,7 +566,11 @@ button.hospital-choice.selected { background: #EFF6FF; border: 2px solid #2563EB
 [data-theme="dark"] .catalog-list li,
 [data-theme="dark"] .appointment-summary div { border-color: #26364D; }
 [data-theme="dark"] .catalog-list li strong,
+[data-theme="dark"] .doctor-admin-item > span strong,
 [data-theme="dark"] .appointment-summary dt { color: #BFDBFE; }
+[data-theme="dark"] .doctor-admin-item small { color: #A8B7CB; }
+[data-theme="dark"] .doctor-admin-item .account-active { color: #6EE7B7; }
+[data-theme="dark"] .doctor-admin-item .account-inactive { color: #FCA5A5; }
 [data-theme="dark"] .hospital-item,
 [data-theme="dark"] button.hospital-choice { background: #111C2E; border-color: #334965; color: #E2E8F0; }
 [data-theme="dark"] button.hospital-choice.selected { background: #172D4A; border-color: #60A5FA; }

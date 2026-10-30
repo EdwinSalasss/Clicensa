@@ -16,6 +16,7 @@ export default function AdminPanel() {
   const [citas, setCitas] = useState([]);
   const [nuevoServicio, setNuevoServicio] = useState(servicioVacio);
   const [nuevoMedico, setNuevoMedico] = useState(medicoVacio);
+  const [medicoActualizando, setMedicoActualizando] = useState(null);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(true);
@@ -31,7 +32,7 @@ export default function AdminPanel() {
     try {
       const [listaServicios, listaMedicos, listaCitas] = await Promise.all([
         api.servicios(usuario.hospitalId),
-        api.medicos(null, usuario.hospitalId),
+        api.medicosAdministracion(),
         api.citasTodas(fecha),
       ]);
       setServicios(listaServicios);
@@ -88,6 +89,28 @@ export default function AdminPanel() {
     }
   }
 
+  async function cambiarEstadoMedico(medico) {
+    if (!medico.cuenta || medicoActualizando !== null) return;
+    const activar = !medico.cuenta.activo;
+    if (!activar && !window.confirm(
+      `¿Bloquear a ${medico.nombre}? Se cancelarán sus citas futuras pendientes o confirmadas y se notificará a los pacientes.`
+    )) return;
+    setError("");
+    setMensaje("");
+    setMedicoActualizando(medico.id);
+    try {
+      const resultado = await api.actualizarEstadoMedico(medico.id, activar);
+      setMensaje(activar
+        ? `Cuenta de ${medico.nombre} reactivada. Las citas que se cancelaron anteriormente no se restauraron.`
+        : `Cuenta de ${medico.nombre} bloqueada. ${resultado.citasCanceladas} citas canceladas; ${resultado.notificaciones.enviadas} pacientes notificados.${resultado.notificaciones.fallidas ? ` Fallaron ${resultado.notificaciones.fallidas} notificaciones.` : ""}`);
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMedicoActualizando(null);
+    }
+  }
+
   return (
     <>
       <NavBar />
@@ -129,7 +152,27 @@ export default function AdminPanel() {
             </form>
             {medicos.length ? (
               <ul className="catalog-list">
-                {medicos.map((medico) => <li key={medico.id}><span>{medico.nombre}</span><strong>{medico.especialidad}</strong></li>)}
+                {medicos.map((medico) => (
+                  <li key={medico.id} className="doctor-admin-item">
+                    <span>
+                      <strong>{medico.nombre}</strong>
+                      <small>{medico.especialidad} · {medico.cuenta?.correo || "Sin cuenta de usuario"}</small>
+                      <small className={medico.cuenta?.activo ? "account-active" : "account-inactive"}>
+                        {!medico.cuenta ? "Sin cuenta" : !medico.cuenta.activada ? "Invitación pendiente" : medico.cuenta.activo ? "Cuenta activa" : "Cuenta bloqueada"}
+                      </small>
+                    </span>
+                    {medico.cuenta && (
+                      <button
+                        type="button"
+                        className={`small-button ${medico.cuenta.activo ? "danger" : "secondary"}`}
+                        disabled={medicoActualizando !== null}
+                        onClick={() => cambiarEstadoMedico(medico)}
+                      >
+                        {medicoActualizando === medico.id ? "Guardando..." : medico.cuenta.activo ? "Bloquear" : "Reactivar"}
+                      </button>
+                    )}
+                  </li>
+                ))}
               </ul>
             ) : <p className="muted">Aún no hay médicos para este hospital.</p>}
           </section>

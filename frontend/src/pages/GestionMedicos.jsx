@@ -17,6 +17,7 @@ export default function GestionMedicos() {
   const [especialidad, setEspecialidad] = useState("Medicina General");
   const [horas, setHoras] = useState({});
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
@@ -24,7 +25,7 @@ export default function GestionMedicos() {
     setError("");
     setCargando(true);
     api
-      .medicos(null, hospitalId)
+      .medicosAdministracion()
       .then(setMedicos)
       .catch((e) => setError(e.message))
       .finally(() => setCargando(false));
@@ -78,6 +79,28 @@ export default function GestionMedicos() {
     }
   }
 
+  async function cambiarEstadoMedico(medico) {
+    if (!medico.cuenta || guardando) return;
+    const activar = !medico.cuenta.activo;
+    if (!activar && !window.confirm(
+      `¿Bloquear a ${medico.nombre}? Se cancelarán sus citas futuras pendientes o confirmadas y se notificará a los pacientes.`
+    )) return;
+    setError("");
+    setMensaje("");
+    setGuardando(true);
+    try {
+      const resultado = await api.actualizarEstadoMedico(medico.id, activar);
+      setMensaje(activar
+        ? `Cuenta de ${medico.nombre} reactivada. Las citas canceladas no se restauraron.`
+        : `Cuenta bloqueada. ${resultado.citasCanceladas} citas canceladas; ${resultado.notificaciones.enviadas} pacientes notificados.${resultado.notificaciones.fallidas ? ` Fallaron ${resultado.notificaciones.fallidas} notificaciones.` : ""}`);
+      cargarMedicos();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   return (
     <div>
       <NavBar />
@@ -111,6 +134,7 @@ export default function GestionMedicos() {
           </form>
         </div>
 
+        {mensaje && <p className="success" role="status">{mensaje}</p>}
         {error && <p className="error">{error}</p>}
         {cargando ? (
           <p>Cargando...</p>
@@ -122,6 +146,7 @@ export default function GestionMedicos() {
               <tr>
                 <th>Nombre</th>
                 <th>Especialidad</th>
+                <th>Cuenta</th>
                 <th>Horarios</th>
                 <th>Agregar horario</th>
               </tr>
@@ -131,6 +156,21 @@ export default function GestionMedicos() {
                 <tr key={medico.id}>
                   <td>{medico.nombre}</td>
                   <td>{medico.especialidad}</td>
+                  <td>
+                    <span className={`badge ${medico.cuenta?.activo ? "confirmada" : "cancelada"}`}>
+                      {!medico.cuenta ? "Sin cuenta" : !medico.cuenta.activada ? "Invitación pendiente" : medico.cuenta.activo ? "Activa" : "Bloqueada"}
+                    </span>
+                    {medico.cuenta && (
+                      <button
+                        type="button"
+                        className={`small-button ${medico.cuenta.activo ? "danger" : "secondary"}`}
+                        disabled={guardando}
+                        onClick={() => cambiarEstadoMedico(medico)}
+                      >
+                        {medico.cuenta.activo ? "Bloquear" : "Reactivar"}
+                      </button>
+                    )}
+                  </td>
                   <td>
                     <div className="horarios-lista">
                       {(medico.horarios || []).map((horario) => (

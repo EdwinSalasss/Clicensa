@@ -8,20 +8,26 @@ const TABS_POR_ROL = {
     { to: "/paciente/agendar", label: "Agendar Cita" },
     { to: "/paciente/historial", label: "Historial de Citas" },
   ],
-  MEDICO: [{ to: "/medico", label: "Agenda y disponibilidad" }],
+  MEDICO: [
+    { to: "/medico", label: "Agenda y disponibilidad" },
+    { to: "/reportes", label: "Reportes" },
+  ],
   PERSONAL_ADMINISTRATIVO: [
     { to: "/admin", label: "Panel del hospital" },
-    { to: "/admin/medicos", label: "Médicos y horarios" },
+    { to: "/reportes", label: "Reportes" },
   ],
   ADMIN_SISTEMA: [{ to: "/sistema", label: "Administrar hospitales" }],
   paciente: [
     { to: "/paciente/agendar", label: "Agendar Cita" },
     { to: "/paciente/historial", label: "Historial de Citas" },
   ],
-  medico: [{ to: "/medico", label: "Agenda del Dia" }],
+  medico: [
+    { to: "/medico", label: "Agenda del Dia" },
+    { to: "/reportes", label: "Reportes" },
+  ],
   administrativo: [
     { to: "/admin", label: "Panel Administrativo" },
-    { to: "/admin/medicos", label: "Médicos y Horarios" },
+    { to: "/reportes", label: "Reportes" },
   ],
 };
 
@@ -66,6 +72,15 @@ export default function NavBar() {
     document.documentElement.dataset.theme = temaOscuro ? "dark" : "light";
     localStorage.setItem("clisensa_theme", temaOscuro ? "dark" : "light");
   }, [temaOscuro]);
+
+  useEffect(() => {
+    function cerrarSesionExpirada() {
+      cerrarSesion();
+      navigate("/login", { replace: true });
+    }
+    window.addEventListener("clisensa:session-expired", cerrarSesionExpirada);
+    return () => window.removeEventListener("clisensa:session-expired", cerrarSesionExpirada);
+  }, [navigate]);
 
   useEffect(() => {
     let vigente = true;

@@ -202,12 +202,50 @@ router.get("/perfil", requiereAuth, requiereRol("MEDICO"), async (req, res) => {
   }
 });
 
+router.get(
+  "/administracion",
+  requiereAuth,
+  requiereRol("PERSONAL_ADMINISTRATIVO"),
+  async (req, res) => {
+    try {
+      if (!req.usuario.hospitalId) {
+        return res.status(403).json({ error: "La cuenta administrativa no está asociada a un hospital" });
+      }
+      const medicos = await prisma.medico.findMany({
+        where: { hospitalId: req.usuario.hospitalId },
+        orderBy: { nombre: "asc" },
+        include: {
+          horarios: { orderBy: { hora: "asc" } },
+          perfil: { select: { licenciaMedica: true } },
+          usuario: {
+            select: { id: true, correo: true, activo: true, activadoEn: true },
+          },
+        },
+      });
+      res.json(medicos.map(({ usuario, perfil, ...medico }) => ({
+        ...medico,
+        licenciaMedica: perfil?.licenciaMedica || null,
+        cuenta: usuario
+          ? {
+              id: usuario.id,
+              correo: usuario.correo,
+              activo: usuario.activo,
+              activada: Boolean(usuario.activadoEn),
+            }
+          : null,
+      })));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error al consultar los médicos del hospital" });
+    }
+  }
+);
+
 // GET /api/medicos?especialidad=Medicina General
 router.get("/", async (req, res) => {
   try {
     const { especialidad } = req.query;
     const soloDisponibles = req.query.soloDisponibles === "true";
-    const soloActivos = req.query.soloActivos === "true";
     if (especialidad !== undefined && typeof especialidad !== "string") {
       return res.status(400).json({ error: "especialidad debe ser texto" });
     }
@@ -237,9 +275,13 @@ router.get("/", async (req, res) => {
       where: {
         ...(hospitalId ? { hospitalId } : {}),
         ...(especialidad ? { especialidad: { contains: especialidad, mode: "insensitive" } } : {}),
-        ...(soloDisponibles || soloActivos ? {
-          usuario: { is: { rol: "MEDICO", activadoEn: { not: null } } },
-        } : {}),
+        usuario: {
+          is: {
+            rol: "MEDICO",
+            activo: true,
+            activadoEn: { not: null },
+          },
+        },
       },
       orderBy: { nombre: "asc" },
       include: {
@@ -274,6 +316,104 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Error al consultar medicos" });
   }
 });
+
+router.patch(
+  "/:id/estado",
+  requiereAuth,
+  requiereRol("PERSONAL_ADMINISTRATIVO"),
+  async (req, res) => {
+    try {
+      if (!req.usuario.hospitalId) {
+        return res.status(403).json({ error: "La cuenta administrativa no está asociada a un hospital" });
+      }
+      const medicoId = Number(req.params.id);
+      const { activo } = req.body || {};
+      if (!Number.isInteger(medicoId) || medicoId <= 0 || typeof activo !== "boolean") {
+        return res.status(400).json({ error: "Indica un médico válido y activo como valor booleano" });
+      }
+
+      const medico = await prisma.medico.findFirst({
+        where: { id: medicoId, hospitalId: req.usuario.hospitalId },
+        include: {
+          usuario: {
+            select: { id: true, rol: true, activo: true },
+          },
+        },
+      });
+      if (!medico) return res.status(404).json({ error: "Médico no encontrado en este hospital" });
+      if (!medico.usuario || medico.usuario.rol !== "MEDICO") {
+        return res.status(409).json({ error: "El médico no tiene una cuenta administrable" });
+      }
+
+      const citasCanceladas = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "usuarios" WHERE "id" = ${medico.usuario.id} FOR UPDATE`;
+        await tx.usuario.update({
+          where: { id: medico.usuario.id },
+          data: { activo },
+        });
+        if (activo) return [];
+
+        const ahora = new Date();
+        const citasFuturas = await tx.cita.findMany({
+          where: {
+            medicoId,
+            fechaHora: { gte: ahora },
+            estado: { in: ["PENDIENTE", "CONFIRMADA"] },
+          },
+          include: {
+            paciente: { select: { nombre: true, correo: true } },
+            medico: { select: { nombre: true } },
+            hospital: { select: { nombre: true, telefono: true } },
+            servicio: { select: { nombre: true } },
+          },
+          orderBy: [{ fechaHora: "asc" }],
+        });
+
+        for (const cita of citasFuturas) {
+          await tx.cita.update({
+            where: { id: cita.id },
+            data: {
+              estado: "CANCELADA",
+              ...(cita.estadoReprogramacion === "PENDIENTE"
+                ? {
+                    estadoReprogramacion: "RECHAZADA",
+                    resueltaReprogramacionEn: ahora,
+                  }
+                : {}),
+            },
+          });
+        }
+        return citasFuturas;
+      });
+
+      let enviadas = 0;
+      let fallidas = 0;
+      for (const cita of citasCanceladas) {
+        try {
+          await enviarCorreo({
+            to: cita.paciente.correo,
+            subject: `Cita cancelada en ${cita.hospital.nombre}`,
+            html: `<p>Hola ${escapeHtml(cita.paciente.nombre)}, te informamos que tu cita de ${escapeHtml(cita.servicio.nombre)} con ${escapeHtml(cita.medico.nombre)} del ${escapeHtml(cita.fecha)} a las ${escapeHtml(cita.hora)} fue cancelada porque la cuenta del médico fue bloqueada por el hospital.</p><p>Comunícate con ${escapeHtml(cita.hospital.nombre)}${cita.hospital.telefono ? ` al ${escapeHtml(cita.hospital.telefono)}` : ""} para coordinar una nueva cita.</p>`,
+          });
+          enviadas += 1;
+        } catch (err) {
+          fallidas += 1;
+          console.error(`No se pudo notificar la cancelación de la cita ${cita.id}:`, err);
+        }
+      }
+
+      res.json({
+        medicoId,
+        activo,
+        citasCanceladas: citasCanceladas.length,
+        notificaciones: { enviadas, fallidas },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error al actualizar el estado del médico" });
+    }
+  }
+);
 
 router.post("/", requiereAuth, requiereRol("PERSONAL_ADMINISTRATIVO"), async (req, res) => {
   try {

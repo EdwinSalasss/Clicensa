@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { prisma } from "../db/prisma.js";
 
 const SECRETO_DESARROLLO = "clisensa_dev_secret_change_me";
 const SECRETO_EJEMPLO = "replace-with-a-random-secret-of-at-least-32-characters";
@@ -41,7 +42,7 @@ export function firmarTokenActivacion(usuario) {
   );
 }
 
-export function requiereAuth(req, res, next) {
+export async function requiereAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) {
@@ -49,10 +50,23 @@ export function requiereAuth(req, res, next) {
   }
   try {
     req.usuario = jwt.verify(token, JWT_SECRET);
-    next();
   } catch (err) {
     return res.status(401).json({ error: "Token invalido o expirado" });
   }
+  let cuenta;
+  try {
+    cuenta = await prisma.usuario.findUnique({
+      where: { id: req.usuario.id },
+      select: { activo: true },
+    });
+  } catch (err) {
+    console.error("No se pudo validar el estado de la cuenta autenticada:", err);
+    return res.status(500).json({ error: "No se pudo validar la sesión" });
+  }
+  if (!cuenta || !cuenta.activo) {
+    return res.status(401).json({ error: "La cuenta está desactivada" });
+  }
+  return next();
 }
 
 // Uso: requiereRol("MEDICO"), requiereRol("PERSONAL_ADMINISTRATIVO"), etc.
